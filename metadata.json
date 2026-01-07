@@ -1,0 +1,5 @@
+{
+  "name": "Resolution Bingo",
+  "description": "A multiplayer, collaborative New Year's Resolution Bingo game with real-time-like local synchronization.",
+  "requestFramePermissions": []
+}
