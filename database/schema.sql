@@ -61,8 +61,10 @@ ALTER SEQUENCE public.board_id_seq OWNED BY public.board.id;
 CREATE TABLE public.squares (
     id integer CONSTRAINT board_squares_id_not_null NOT NULL,
     board_id integer CONSTRAINT board_squares_board_id_not_null NOT NULL,
+    player_id integer, CONSTRAINT board_squares_player_id_fkey REFERENCES public.users(id),
     index integer CONSTRAINT board_squares_index_not_null NOT NULL,
     goal varchar(255) 
+    
 );
 
 
