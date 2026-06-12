@@ -61,9 +61,8 @@ ALTER SEQUENCE public.board_id_seq OWNED BY public.board.id;
 CREATE TABLE public.squares (
     id integer CONSTRAINT board_squares_id_not_null NOT NULL,
     board_id integer CONSTRAINT board_squares_board_id_not_null NOT NULL,
-    "row" integer CONSTRAINT board_squares_row_not_null NOT NULL,
-    col integer CONSTRAINT board_squares_col_not_null NOT NULL,
-    value character varying(10) CONSTRAINT board_squares_value_not_null NOT NULL
+    index integer CONSTRAINT board_squares_index_not_null NOT NULL,
+    goal varchar(255) CONSTRAINT 
 );
 
 
