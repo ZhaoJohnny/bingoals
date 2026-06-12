@@ -62,7 +62,7 @@ CREATE TABLE public.squares (
     id integer CONSTRAINT board_squares_id_not_null NOT NULL,
     board_id integer CONSTRAINT board_squares_board_id_not_null NOT NULL,
     index integer CONSTRAINT board_squares_index_not_null NOT NULL,
-    goal varchar(255) CONSTRAINT 
+    goal varchar(255) 
 );
 
 
