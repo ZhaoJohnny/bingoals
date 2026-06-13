@@ -1,0 +1,19 @@
+.bingo-board {
+  border: 2px solid #333;
+  width: 400px;
+  margin: 40px auto;
+}
+
+.bingo-board-header {
+  background-color: #d9d9d9;
+  border-bottom: 2px solid #333;
+  text-align: center;
+  font-size: 1.5rem;
+  padding: 12px 0;
+  letter-spacing: 0.05em;
+}
+
+.bingo-board-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+}
