@@ -9,7 +9,7 @@ function BingoSquare({ content }) {
       e.preventDefault();
 
       try {
-        const response = await fetch('/api/bingo-square', {
+        const response = await fetch('http://localhost:3001/api/bingo-square', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
