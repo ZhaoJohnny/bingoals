@@ -5,32 +5,58 @@ function StartMenu({ onStart }) {
     const [playerID, setPlayerID] = useState('');
     const [roomCode, setRoomCode] = useState('');
 
-    function handleStartClick() {
+    function handleJoinClick() {
          if (!playerID || !roomCode) {
             alert('Please enter a player name and room code');
             return;
         }
         onStart(playerID, roomCode);
     }
+    function handleCreateClick() {
+        if (!playerID) {
+            alert('Please enter a player name');
+            return;
+        }
+        // Handle create game logic here
+    }
 
   return (
     <div className="start-menu">
-      <h2>Welcome to BINGOals!</h2>
-      <input
-        type="text"
-        placeholder="Enter Player ID"
-        value={playerID}
-        onChange={(e) => setPlayerID(e.target.value)}
-      />
-      <input
-        type="text"
-        placeholder="Enter Room Code"
-        value={roomCode}
-        onChange={(e) => setRoomCode(e.target.value)}
-      />
-      <button onClick={handleStartClick}>Start Game</button>
+  <h2>Welcome to BINGOals!</h2>
 
-    </div>
+  <div className="menu-section">
+    <h3>Join Game</h3>
+
+    <input
+      type="text"
+      placeholder="Enter Player ID"
+      value={playerID}
+      onChange={(e) => setPlayerID(e.target.value)}
+    />
+
+    <input
+      type="text"
+      placeholder="Enter Room Code"
+      value={roomCode}
+      onChange={(e) => setRoomCode(e.target.value)}
+    />
+
+    <button onClick={handleJoinClick}>Join Game</button>
+  </div>
+
+  <div className="menu-section">
+    <h3>Create Game</h3>
+
+    <input
+      type="text"
+      placeholder="Enter Player ID"
+      value={playerID}
+      onChange={(e) => setPlayerID(e.target.value)}
+    />
+
+    <button onClick={handleCreateClick}>Create Game</button>
+  </div>
+</div>
   );
 }
 

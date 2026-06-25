@@ -1,4 +1,13 @@
-.start-menu{
-    align-items: center;
-    display: flex;
+.start-menu {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.menu-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 250px;
 }
