@@ -12,15 +12,40 @@ function App() {
     setRoomCode(room);
     setPlayerID(playerID);
   }
-  function fetchBingoBoard() {
-    // Fetch the bingo board data from the backend using the roomCode and playerID
-    // This is a placeholder function; you would implement the actual fetch logic here
+  async function handleCreateGame(playerID) {
+    try {
+      const response = await fetch('http://localhost:3001/api/create-game', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          playerID: playerID,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create game');
+      }
+
+      const data = await response.json();
+      setRoomCode(data.roomCode);
+      setPlayerID(playerID);
+      setGameStarted(true);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+  function handleJoinGame(playerID, roomCode) {
+    setPlayerID(playerID);
+    setRoomCode(roomCode);
+    setGameStarted(true);
   }
   return (
     <div className="app">
       <h1 className="app-title">BINGOals</h1>
       {!gameStarted ? (
-        <StartMenu onStart={handleStartGame} />
+        <StartMenu onCreate={handleCreateGame} onJoin={handleJoinGame} />
       ) : (
         <BingoBoard title="BOARD NAME" />
       )}

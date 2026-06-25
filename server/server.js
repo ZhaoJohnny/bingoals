@@ -23,6 +23,7 @@ app.get('/', (req, res) => {
 });
 
 app.post('/api/bingo-square', async (req, res) => {
+  
   const { content } = req.body;
   
   console.log('Bingo square text:', content);
@@ -31,6 +32,15 @@ app.post('/api/bingo-square', async (req, res) => {
     success: true,
     message: 'Bingo square received',
     content,
+  });
+});
+app.post('/api/create-game', async (req, res) => {
+  const { playerID } = req.body;
+  console.log('Creating game for player:', playerID);
+  res.json({
+    success: true,
+    message: 'Game created',
+    roomCode: 'ABCD', // Placeholder room code
   });
 });
 

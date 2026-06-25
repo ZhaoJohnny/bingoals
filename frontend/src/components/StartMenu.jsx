@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import '../styles/StartMenu.css';
 
-function StartMenu({ onStart }) {
+function StartMenu({ onCreate, onJoin }) {
     const [playerID, setPlayerID] = useState('');
     const [roomCode, setRoomCode] = useState('');
 
@@ -10,14 +10,14 @@ function StartMenu({ onStart }) {
             alert('Please enter a player name and room code');
             return;
         }
-        onStart(playerID, roomCode);
+        onJoin(playerID, roomCode);
     }
     function handleCreateClick() {
         if (!playerID) {
             alert('Please enter a player name');
             return;
         }
-        // Handle create game logic here
+        onCreate(playerID);
     }
 
   return (
