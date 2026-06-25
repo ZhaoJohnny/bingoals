@@ -24,7 +24,7 @@ app.get('/', (req, res) => {
 
 app.post('/api/bingo-square', async (req, res) => {
   const { content } = req.body;
-
+  
   console.log('Bingo square text:', content);
 
   res.json({

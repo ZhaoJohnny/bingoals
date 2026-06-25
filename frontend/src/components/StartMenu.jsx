@@ -6,6 +6,10 @@ function StartMenu({ onStart }) {
     const [roomCode, setRoomCode] = useState('');
 
     function handleStartClick() {
+         if (!playerID || !roomCode) {
+            alert('Please enter a player name and room code');
+            return;
+        }
         onStart(playerID, roomCode);
     }
 
