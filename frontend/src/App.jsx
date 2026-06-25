@@ -7,12 +7,8 @@ function App() {
   const [gameStarted, setGameStarted] = useState(false);
   const [roomCode, setRoomCode] = useState('');
   const [playerID, setPlayerID] = useState('');
-  function handleStartGame(playerID, room) {
-    setGameStarted(true);
-    setRoomCode(room);
-    setPlayerID(playerID);
-  }
   async function handleCreateGame(playerID) {
+    
     try {
       const response = await fetch('http://localhost:3001/api/create-game', {
         method: 'POST',

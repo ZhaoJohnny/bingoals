@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import pg from "pg";
+import dotenv from 'dotenv';
+dotenv.config();
 
 const app = express();
 const PORT = 3001;
@@ -36,12 +38,21 @@ app.post('/api/bingo-square', async (req, res) => {
 });
 app.post('/api/create-game', async (req, res) => {
   const { playerID } = req.body;
-  console.log('Creating game for player:', playerID);
+  try {
+  const result = await pool.query('INSERT INTO boards (host_id) VALUES ($1) RETURNING id', [playerID]);
   res.json({
     success: true,
     message: 'Game created',
-    roomCode: 'ABCD', // Placeholder room code
+    boardID: result.rows[0].id,
+    roomCode: 'ABCD',
   });
+  }catch (error) {
+    console.error('Error creating game:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create game',
+    });
+  }
 });
 
 app.listen(PORT, () => {
