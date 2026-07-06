@@ -44,7 +44,6 @@ app.post('/api/create-game', async (req, res) => {
     success: true,
     message: 'Game created',
     boardID: result.rows[0].id,
-    roomCode: 'ABCD',
   });
   }catch (error) {
     console.error('Error creating game:', error);
