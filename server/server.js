@@ -69,6 +69,7 @@ app.post("/api/register", async (req, res) => {
     });
   }
 });
+
 app.post("/api/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -112,16 +113,54 @@ app.post("/api/login", async (req, res) => {
   }
 });
 app.post('/api/bingo-square', async (req, res) => {
-  
-  const { content } = req.body;
-  
-  console.log('Bingo square text:', content);
+  const { boardID, index, content } = req.body;
 
-  res.json({
-    success: true,
-    message: 'Bingo square received',
-    content,
-  });
+  if (boardID === undefined || index === undefined) {
+    return res.status(400).json({ success: false, message: 'boardID and index are required' });
+  }
+
+  try {
+    const result = await pool.query(
+      `UPDATE squares SET goal = $1 WHERE board_id = $2 AND index = $3 RETURNING id, goal`,
+      [content, boardID, index]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Square not found for that board/index' });
+    }
+
+    res.json({ success: true, message: 'Bingo square saved', square: result.rows[0] });
+  } catch (error) {
+    console.error('Error saving bingo square:', error);
+    res.status(500).json({ success: false, message: 'Failed to save bingo square' });
+  }
+});
+
+app.get('/api/board/:boardID', async (req, res) => {
+  const { boardID } = req.params;
+
+  try {
+    const boardResult = await pool.query(`SELECT * FROM boards WHERE id = $1`, [boardID]);
+    if (boardResult.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Board not found' });
+    }
+    const board = boardResult.rows[0];
+
+    const squaresResult = await pool.query(
+      `SELECT id, index, goal FROM squares WHERE board_id = $1 ORDER BY index`,
+      [boardID]
+    );
+
+    res.json({
+      success: true,
+      boardID: board.id,
+      title: board.title,
+      cells: squaresResult.rows.map(sq => ({ squareId: sq.id, index: sq.index, content: sq.goal })),
+    });
+  } catch (error) {
+    console.error('Error fetching board:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch board' });
+  }
 });
 
 // TEMPORARY: resolves a display name to a users.id, creating a guest
