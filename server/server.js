@@ -75,7 +75,7 @@ app.post("/api/login", async (req, res) => {
     const { email, password } = req.body;
 
     const user = await pool.query(
-      "SELECT id, name, email, password_hash FROM users WHERE email = $1",
+      "SELECT id, name, email, password FROM users WHERE email = $1",
       [email]
     );
 
@@ -86,7 +86,7 @@ app.post("/api/login", async (req, res) => {
       });
     }
 
-    const isMatch = await bcrypt.compare(password, user.rows[0].password_hash);
+    const isMatch = await bcrypt.compare(password, user.rows[0].password);
 
     if (!isMatch) {
       return res.status(401).json({

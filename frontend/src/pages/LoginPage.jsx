@@ -15,8 +15,9 @@ function LoginPage() {
                 body: JSON.stringify({ email:email, password:password })
             });
             if (response.ok) {
-            navigate("/start");
-        }
+              localStorage.setItem("user", JSON.stringify(await response.json()));
+              navigate("/start");
+            }
         } catch (error) {
             console.error("Error logging in:", error);
         }

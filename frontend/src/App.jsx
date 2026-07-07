@@ -1,8 +1,9 @@
 import { Routes, Route, useNavigate, useParams } from "react-router-dom";
-  import StartPage from "./pages/StartPage";
-  import BoardPage from "./pages/BoardPage";
-  import LoginPage from "./pages/LoginPage";
-  import SignUpPage from "./pages/SignUpPage";
+import StartPage from "./pages/StartPage";
+import BoardPage from "./pages/BoardPage";
+import LoginPage from "./pages/LoginPage";
+import SignUpPage from "./pages/SignUpPage";
+import ProtectedRoute from "./components/ProtectedRoute";
 function StartMenuPage() {
   const navigate = useNavigate();
 
@@ -52,10 +53,15 @@ function App() {
       <h1 className="app-title">BINGOals</h1>
 
       <Routes>
+        <Route path="/" element={<LoginPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/start" element={<StartPage />} />
-        <Route path="/board/:boardID" element={<BoardPage />} />
+        <Route path="/board/:boardID" element={
+          <ProtectedRoute>
+            <BoardPage />
+          </ProtectedRoute>
+        } />
       </Routes>
     </div>
   );
