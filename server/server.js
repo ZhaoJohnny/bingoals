@@ -178,7 +178,7 @@ app.post('/api/create-game', async (req, res) => {
 
     // Register the creator as a player on this board
     await client.query(
-      `INSERT INTO players (player_id, board_id) VALUES ($1, $2)`,
+      `INSERT INTO players (user_id, board_id) VALUES ($1, $2)`,
       [userId, boardId]
     );
 
