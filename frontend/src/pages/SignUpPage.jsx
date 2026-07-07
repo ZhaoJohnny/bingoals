@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 
 function SignUpPage() {
+    const navigate = useNavigate();
     function handleSubmit(event) {
         event.preventDefault();
         const username = event.target[0].value;
@@ -20,6 +21,7 @@ function SignUpPage() {
         } catch (error) {
             console.error("Error signing up:", error);
         }
+        navigate("/start");
     }
   return (
     <div>
