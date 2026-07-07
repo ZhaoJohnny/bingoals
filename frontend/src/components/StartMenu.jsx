@@ -5,13 +5,25 @@ function StartMenu({ onCreate, onJoin }) {
     const [playerID, setPlayerID] = useState('');
     const [boardID, setBoardID] = useState('');
 
-    function handleJoinClick() {
-         if (!playerID || !boardID) {
+   async function handleJoinClick() {
+        if (!playerID || !boardID) {
             alert('Please enter a player name and board ID');
             return;
         }
-        onJoin(playerID, boardID);
+        try {
+            const res = await fetch(`http://localhost:3001/api/board/${boardID}`);
+            const data = await res.json();
+            if (!data.success) {
+                alert('Please enter a valid board ID');
+                return;
+            }
+            onJoin(playerID, boardID);
+        } catch (error) {
+            console.error('Error checking board:', error);
+            alert('Something went wrong checking that board ID')
+        }
     }
+
     function handleCreateClick() {
         if (!playerID) {
             alert('Please enter a player name');
