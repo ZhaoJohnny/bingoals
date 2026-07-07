@@ -32,6 +32,7 @@ function SignUpPage() {
         <input type="password" placeholder="Password" />
         <button type="submit">Sign Up</button>
       </form>
+      <button onClick={() => navigate("/")}>Back to Login</button>
     </div>
   );
 };
