@@ -55,6 +55,8 @@ app.post('/api/create-game', async (req, res) => {
     //   `INSERT INTO boards (title, host_id, status) VALUES ($1, $2, 'active') RETURNING id`,
     //   [boardTitle, userId]
     // );
+    // Keep in mind that for now it does not randomly generate unique ids, and only does a small range 
+    // TODO: make the board IDs generate unique ids
     const boardResult = await client.query(
       `INSERT INTO boards (host_id, status) VALUES ($1, 'active') RETURNING id`,
       [userId]
