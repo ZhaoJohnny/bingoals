@@ -45,11 +45,6 @@ function StartMenuPage() {
   return <StartMenu onCreate={handleCreateGame} onJoin={handleJoinGame} />;
 }
 
-function BingoBoardPage() {
-  const { boardID } = useParams();
-
-  return <BingoBoard title="BOARD NAME" boardID={boardID} />;
-}
 
 function App() {
   return (
@@ -57,7 +52,7 @@ function App() {
       <h1 className="app-title">BINGOals</h1>
 
       <Routes>
-        <Route path="/" element={<LoginPage />} />
+        <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/start" element={<StartPage />} />
         <Route path="/board/:boardID" element={<BoardPage />} />
