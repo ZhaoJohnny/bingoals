@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import '../styles/BingoSquare.css';
 
-function BingoSquare({ content }) {
+function BingoSquare({ content, boardID, index }) {
   const [text, setText] = useState(content || '');
 
   async function handleKeyDown(e) {
@@ -15,6 +15,8 @@ function BingoSquare({ content }) {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
+            boardID,
+            index,
             content: text,
           }),
         });

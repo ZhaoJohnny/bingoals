@@ -24,7 +24,7 @@ function StartMenuPage() {
 
       const data = await response.json();
 
-      navigate(`/board/${data.roomCode}`, {
+      navigate(`/board/${data.boardID}`, {
         state: {
           playerID: playerID,
         },
@@ -34,8 +34,8 @@ function StartMenuPage() {
     }
   }
 
-  function handleJoinGame(playerID, roomCode) {
-    navigate(`/board/${roomCode}`, {
+  function handleJoinGame(playerID, boardID) {
+    navigate(`/board/${boardID}`, {
       state: {
         playerID: playerID,
       },
@@ -46,9 +46,9 @@ function StartMenuPage() {
 }
 
 function BingoBoardPage() {
-  const { roomCode } = useParams();
+  const { boardID } = useParams();
 
-  return <BingoBoard title="BOARD NAME" roomCode={roomCode} />;
+  return <BingoBoard title="BOARD NAME" boardID={boardID} />;
 }
 
 function App() {
@@ -58,7 +58,7 @@ function App() {
 
       <Routes>
         <Route path="/" element={<StartMenuPage />} />
-        <Route path="/board/:roomCode" element={<BingoBoardPage />} />
+        <Route path="/board/:boardID" element={<BingoBoardPage />} />
       </Routes>
     </div>
   );
