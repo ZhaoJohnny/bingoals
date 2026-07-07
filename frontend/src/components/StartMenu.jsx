@@ -3,14 +3,14 @@ import '../styles/StartMenu.css';
 
 function StartMenu({ onCreate, onJoin }) {
     const [playerID, setPlayerID] = useState('');
-    const [boardID, setBoardID] = useState('');
+    const [roomCode, setRoomCode] = useState('');
 
     function handleJoinClick() {
-         if (!playerID || !boardID) {
-            alert('Please enter a player name and board ID');
+         if (!playerID || !roomCode) {
+            alert('Please enter a player name and room code');
             return;
         }
-        onJoin(playerID, boardID);
+        onJoin(playerID, roomCode);
     }
     function handleCreateClick() {
         if (!playerID) {
@@ -36,9 +36,9 @@ function StartMenu({ onCreate, onJoin }) {
 
     <input
       type="text"
-      placeholder="Enter Board ID"
-      value={boardID}
-      onChange={(e) => setBoardID(e.target.value)}
+      placeholder="Enter Room Code"
+      value={roomCode}
+      onChange={(e) => setRoomCode(e.target.value)}
     />
 
     <button onClick={handleJoinClick}>Join Game</button>
