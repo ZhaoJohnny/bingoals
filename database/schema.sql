@@ -2,6 +2,8 @@
 -- PostgreSQL database dump
 --
 
+\restrict LuYkliuKLjzPFdIr0rZJUAufa4vD5M84jH6ITGMplGZeTU4Jyeu36RPKdJ9vdDm
+
 -- Dumped from database version 18.2
 -- Dumped by pg_dump version 18.2
 
@@ -22,17 +24,20 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- Name: board; Type: TABLE; Schema: public; Owner: postgres
+-- Name: boards; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE public.board (
-    id integer NOT NULL,
+CREATE TABLE public.boards (
+    id integer CONSTRAINT board_id_not_null NOT NULL,
     status character varying(20) DEFAULT 'active'::character varying,
     created_at timestamp without time zone DEFAULT now(),
     ended_at timestamp without time zone,
-    winner_id integer
+    winner_id integer,
+    host_id integer NOT NULL
 );
 
+
+ALTER TABLE public.boards OWNER TO postgres;
 
 --
 -- Name: board_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
@@ -47,11 +52,13 @@ CREATE SEQUENCE public.board_id_seq
     CACHE 1;
 
 
+ALTER SEQUENCE public.board_id_seq OWNER TO postgres;
+
 --
 -- Name: board_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE public.board_id_seq OWNED BY public.board.id;
+ALTER SEQUENCE public.board_id_seq OWNED BY public.boards.id;
 
 
 --
@@ -61,13 +68,13 @@ ALTER SEQUENCE public.board_id_seq OWNED BY public.board.id;
 CREATE TABLE public.squares (
     id integer CONSTRAINT board_squares_id_not_null NOT NULL,
     board_id integer CONSTRAINT board_squares_board_id_not_null NOT NULL,
-    player_id integer, CONSTRAINT board_squares_player_id_fkey REFERENCES public.users(id),
+    goal character varying(255),
     index integer CONSTRAINT board_squares_index_not_null NOT NULL,
-    goal varchar(255) 
-    
+    player_id integer
 );
 
 
+ALTER TABLE public.squares OWNER TO postgres;
 
 --
 -- Name: board_squares_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
@@ -80,6 +87,9 @@ CREATE SEQUENCE public.board_squares_id_seq
     NO MINVALUE
     NO MAXVALUE
     CACHE 1;
+
+
+ALTER SEQUENCE public.board_squares_id_seq OWNER TO postgres;
 
 --
 -- Name: board_squares_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
@@ -100,7 +110,7 @@ CREATE TABLE public.players (
 );
 
 
-
+ALTER TABLE public.players OWNER TO postgres;
 
 --
 -- Name: game_players_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
@@ -115,6 +125,7 @@ CREATE SEQUENCE public.game_players_id_seq
     CACHE 1;
 
 
+ALTER SEQUENCE public.game_players_id_seq OWNER TO postgres;
 
 --
 -- Name: game_players_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
@@ -135,6 +146,7 @@ CREATE TABLE public.marker (
 );
 
 
+ALTER TABLE public.marker OWNER TO postgres;
 
 --
 -- Name: player_marks_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
@@ -149,7 +161,7 @@ CREATE SEQUENCE public.player_marks_id_seq
     CACHE 1;
 
 
-
+ALTER SEQUENCE public.player_marks_id_seq OWNER TO postgres;
 
 --
 -- Name: player_marks_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
@@ -171,6 +183,7 @@ CREATE TABLE public.users (
 );
 
 
+ALTER TABLE public.users OWNER TO postgres;
 
 --
 -- Name: players_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
@@ -185,6 +198,8 @@ CREATE SEQUENCE public.players_id_seq
     CACHE 1;
 
 
+ALTER SEQUENCE public.players_id_seq OWNER TO postgres;
+
 --
 -- Name: players_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -193,10 +208,10 @@ ALTER SEQUENCE public.players_id_seq OWNED BY public.users.id;
 
 
 --
--- Name: board id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: boards id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.board ALTER COLUMN id SET DEFAULT nextval('public.board_id_seq'::regclass);
+ALTER TABLE ONLY public.boards ALTER COLUMN id SET DEFAULT nextval('public.board_id_seq'::regclass);
 
 
 --
@@ -228,19 +243,11 @@ ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.player
 
 
 --
--- Name: board board_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: boards board_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.board
+ALTER TABLE ONLY public.boards
     ADD CONSTRAINT board_pkey PRIMARY KEY (id);
-
-
---
--- Name: squares board_squares_board_id_row_col_key; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.squares
-    ADD CONSTRAINT board_squares_board_id_row_col_key UNIQUE (board_id, "row", col);
 
 
 --
@@ -304,14 +311,30 @@ ALTER TABLE ONLY public.users
 --
 
 ALTER TABLE ONLY public.squares
-    ADD CONSTRAINT board_squares_board_id_fkey FOREIGN KEY (board_id) REFERENCES public.board(id);
+    ADD CONSTRAINT board_squares_board_id_fkey FOREIGN KEY (board_id) REFERENCES public.boards(id);
 
 
 --
--- Name: board fk_winner; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: boards boards_host_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.board
+ALTER TABLE ONLY public.boards
+    ADD CONSTRAINT boards_host_id_fkey FOREIGN KEY (host_id) REFERENCES public.users(id);
+
+
+--
+-- Name: boards boards_winner_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.boards
+    ADD CONSTRAINT boards_winner_id_fkey FOREIGN KEY (winner_id) REFERENCES public.users(id);
+
+
+--
+-- Name: boards fk_winner; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.boards
     ADD CONSTRAINT fk_winner FOREIGN KEY (winner_id) REFERENCES public.users(id);
 
 
@@ -320,7 +343,7 @@ ALTER TABLE ONLY public.board
 --
 
 ALTER TABLE ONLY public.players
-    ADD CONSTRAINT game_players_board_id_fkey FOREIGN KEY (board_id) REFERENCES public.board(id);
+    ADD CONSTRAINT game_players_board_id_fkey FOREIGN KEY (board_id) REFERENCES public.boards(id);
 
 
 --
@@ -348,8 +371,16 @@ ALTER TABLE ONLY public.marker
 
 
 --
+-- Name: squares squares_player_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.squares
+    ADD CONSTRAINT squares_player_id_fkey FOREIGN KEY (player_id) REFERENCES public.users(id);
+
+
+--
 -- PostgreSQL database dump complete
 --
 
-
+\unrestrict LuYkliuKLjzPFdIr0rZJUAufa4vD5M84jH6ITGMplGZeTU4Jyeu36RPKdJ9vdDm
 

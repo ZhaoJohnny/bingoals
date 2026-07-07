@@ -1,17 +1,17 @@
 import { useNavigate } from "react-router-dom";
 
-const SignUpPage = () => {
+const LoginPage = () => {
   return (
     <div>
-      <h1>Sign Up</h1>
+      <h1>Login</h1>
       <form>
         <input type="text" placeholder="Username" />
         <input type="email" placeholder="Email" />
         <input type="password" placeholder="Password" />
-        <button type="submit">Sign Up</button>
+        <button type="submit">Login</button>
       </form>
     </div>
   );
 };
 
-export default SignUpPage;
+export default LoginPage;
