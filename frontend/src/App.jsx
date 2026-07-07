@@ -1,7 +1,6 @@
-import { Routes, Route, useNavigate, useParams } from "react-router-dom";
-import BingoBoard from "./components/BingoBoard";
-import StartMenu from "./components/StartMenu";
-import "./App.css";
+  import { Routes, Route } from "react-router-dom";
+  import StartPage from "./pages/StartPage";
+  import BoardPage from "./pages/BoardPage";
 
 function StartMenuPage() {
   const navigate = useNavigate();
@@ -41,20 +40,48 @@ function StartMenuPage() {
       },
     });
   }
+  function App() {
+    return (
+      <Routes>
+        <Route path="/" element={<StartPage />} />
+        <Route path="/board/:roomCode" element={<BoardPage />} />
+      </Routes>
+    );
+  }
 
-  return <StartMenu onCreate={handleCreateGame} onJoin={handleJoinGame} />;
-}
+  export default App;
+
 
 function BingoBoardPage() {
   const { boardID } = useParams();
 
   return <BingoBoard title="BOARD NAME" boardID={boardID} />;
 }
+  // import BingoBoard from './components/BingoBoard';
+  // import StartMenu from './components/StartMenu';
+  // import { useState } from 'react';
+  // import './App.css';
 
-function App() {
-  return (
-    <div className="app">
-      <h1 className="app-title">BINGOals</h1>
+  // function App() {
+  //   const [gameStarted, setGameStarted] = useState(false);
+  //   const [roomCode, setRoomCode] = useState('');
+  //   const [playerID, setPlayerID] = useState('');
+  //   async function handleCreateGame(playerID) {
+      
+  //     try {
+  //       const response = await fetch('http://localhost:3001/api/create-game', {
+  //         method: 'POST',
+  //         headers: {
+  //           'Content-Type': 'application/json',
+  //         },
+  //         body: JSON.stringify({
+  //           playerID: playerID,
+  //         }),
+  //       });
+
+  //       if (!response.ok) {
+  //         throw new Error('Failed to create game');
+  //       }
 
       <Routes>
         <Route path="/" element={<StartMenuPage />} />
@@ -64,4 +91,4 @@ function App() {
   );
 }
 
-export default App;
+  // export default App;

@@ -90,6 +90,13 @@ app.post('/api/create-game', async (req, res) => {
     });
   } catch (error) {
     await client.query('ROLLBACK');
+  const result = await pool.query('INSERT INTO boards (host_id) VALUES ($1) RETURNING id', [playerID]);
+  res.json({
+    success: true,
+    message: 'Game created',
+    boardID: result.rows[0].id,
+  });
+  }catch (error) {
     console.error('Error creating game:', error);
     res.status(500).json({ success: false, message: 'Failed to create game' });
   } finally {
