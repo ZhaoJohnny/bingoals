@@ -2,13 +2,13 @@ import { useNavigate } from "react-router-dom";
 
 function SignUpPage() {
     const navigate = useNavigate();
-    function handleSubmit(event) {
+    async function handleSubmit(event) {
         event.preventDefault();
         const username = event.target[0].value;
         const email = event.target[1].value;
         const password = event.target[2].value;
         try {
-            fetch("http://localhost:3001/api/register", {
+            const response = await fetch("http://localhost:3001/api/register", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
