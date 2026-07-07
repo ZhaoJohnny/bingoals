@@ -1,6 +1,8 @@
 import { useNavigate } from "react-router-dom";
 
-const LoginPage = () => {
+function LoginPage() {
+    const navigate = useNavigate();
+
   return (
     <div>
       <h1>Login</h1>
@@ -10,6 +12,7 @@ const LoginPage = () => {
         <input type="password" placeholder="Password" />
         <button type="submit">Login</button>
       </form>
+        <button onClick={() => navigate("/signup")}>Sign Up</button>
     </div>
   );
 };
