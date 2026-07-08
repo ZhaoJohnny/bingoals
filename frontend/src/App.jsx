@@ -1,6 +1,7 @@
 import { Routes, Route, useNavigate, useParams } from "react-router-dom";
 import BingoBoard from "./components/BingoBoard";
 import StartMenu from "./components/StartMenu";
+import PlayersList from "./components/PlayersList";
 import "./App.css";
 
 function StartMenuPage() {
@@ -48,7 +49,12 @@ function StartMenuPage() {
 function BingoBoardPage() {
   const { boardID } = useParams();
 
-  return <BingoBoard title="BOARD NAME" boardID={boardID} />;
+  return (
+    <>
+      <PlayersList boardID={boardID} />
+      <BingoBoard title="BOARD NAME" boardID={boardID} />
+    </>
+  );;
 }
 
 function App() {

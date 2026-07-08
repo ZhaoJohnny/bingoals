@@ -49,7 +49,7 @@ function handleReadyClick() {
         {boardState === 'addingGoals' ? 'Finalize Board' : 'Edit Goals'}
       </button>
     </div>
-  );
+);
 }
 
 export default BingoBoard;
