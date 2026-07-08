@@ -5,7 +5,7 @@ function StartMenu({ onCreate, onJoin }) {
     const playerID = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')).id : null;
     const [boardID, setBoardID] = useState('');
 
-    function handleJoinClick() {
+    async function handleJoinClick() {
          if (!boardID) {
             alert('Please enter a board ID');
             return;
