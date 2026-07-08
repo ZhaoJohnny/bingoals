@@ -18,10 +18,14 @@ function SignUpPage() {
                     email:email, 
                     password:password })
             });
+            if (response.ok) {
+              const responseData = await response.json();
+              localStorage.setItem("user", JSON.stringify(responseData.user));
+              navigate("/start");
+            }
         } catch (error) {
             console.error("Error signing up:", error);
         }
-        navigate("/start");
     }
   return (
     <div>

@@ -3,6 +3,7 @@ import '../styles/StartMenu.css';
 
 function StartMenu({ onCreate, onJoin }) {
     const playerID = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')).id : null;
+    console.log('StartMenu playerID:', playerID);
     const [boardID, setBoardID] = useState('');
 
     function handleJoinClick() {
