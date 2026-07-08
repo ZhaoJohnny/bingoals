@@ -1,16 +1,16 @@
-// pages/BingoBoardPage.jsx
+// pages/BoardPage.jsx
 
 import { useParams } from "react-router-dom";
 import BingoBoard from "../components/BingoBoard";
 
-function BingoBoardPage() {
-  const { roomCode } = useParams();
+function BoardPage() {
+  const { boardID } = useParams();
 
   return (
     <div>
-      <BingoBoard title="BOARD NAME" roomCode={roomCode} />
+      <BingoBoard title="BOARD NAME" boardID={boardID} />
     </div>
   );
 }
 
-export default BingoBoardPage;
+export default BoardPage;

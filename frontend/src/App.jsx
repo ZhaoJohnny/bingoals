@@ -1,8 +1,9 @@
 import { Routes, Route, useNavigate, useParams } from "react-router-dom";
-import BingoBoard from "./components/BingoBoard";
-import StartMenu from "./components/StartMenu";
-import "./App.css";
-
+import StartPage from "./pages/StartPage";
+import BoardPage from "./pages/BoardPage";
+import LoginPage from "./pages/LoginPage";
+import SignUpPage from "./pages/SignUpPage";
+import ProtectedRoute from "./components/ProtectedRoute";
 function StartMenuPage() {
   const navigate = useNavigate();
 
@@ -45,11 +46,6 @@ function StartMenuPage() {
   return <StartMenu onCreate={handleCreateGame} onJoin={handleJoinGame} />;
 }
 
-function BingoBoardPage() {
-  const { boardID } = useParams();
-
-  return <BingoBoard title="BOARD NAME" boardID={boardID} />;
-}
 
 function App() {
   return (
@@ -57,8 +53,15 @@ function App() {
       <h1 className="app-title">BINGOals</h1>
 
       <Routes>
-        <Route path="/" element={<StartMenuPage />} />
-        <Route path="/board/:boardID" element={<BingoBoardPage />} />
+        <Route path="/" element={<LoginPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignUpPage />} />
+        <Route path="/start" element={<StartPage />} />
+        <Route path="/board/:boardID" element={
+          <ProtectedRoute>
+            <BoardPage />
+          </ProtectedRoute>
+        } />
       </Routes>
     </div>
   );

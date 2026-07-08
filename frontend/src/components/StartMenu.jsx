@@ -2,12 +2,12 @@ import { useState } from 'react';
 import '../styles/StartMenu.css';
 
 function StartMenu({ onCreate, onJoin }) {
-    const [playerID, setPlayerID] = useState('');
+    const playerID = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')).id : null;
     const [boardID, setBoardID] = useState('');
 
-   async function handleJoinClick() {
-        if (!playerID || !boardID) {
-            alert('Please enter a player name and board ID');
+    function handleJoinClick() {
+         if (!boardID) {
+            alert('Please enter a board ID');
             return;
         }
         try {
@@ -25,10 +25,6 @@ function StartMenu({ onCreate, onJoin }) {
     }
 
     function handleCreateClick() {
-        if (!playerID) {
-            alert('Please enter a player name');
-            return;
-        }
         onCreate(playerID);
     }
 
@@ -38,13 +34,6 @@ function StartMenu({ onCreate, onJoin }) {
 
   <div className="menu-section">
     <h3>Join Game</h3>
-
-    <input
-      type="text"
-      placeholder="Enter Player ID"
-      value={playerID}
-      onChange={(e) => setPlayerID(e.target.value)}
-    />
 
     <input
       type="text"
@@ -59,12 +48,6 @@ function StartMenu({ onCreate, onJoin }) {
   <div className="menu-section">
     <h3>Create Game</h3>
 
-    <input
-      type="text"
-      placeholder="Enter Player ID"
-      value={playerID}
-      onChange={(e) => setPlayerID(e.target.value)}
-    />
 
     <button onClick={handleCreateClick}>Create Game</button>
   </div>

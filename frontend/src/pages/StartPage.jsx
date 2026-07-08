@@ -12,7 +12,7 @@ function StartPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          playerID: playerID,
+          playerID: 9,
         }),
       });
 
