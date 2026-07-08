@@ -17,3 +17,9 @@
   display: grid;
   grid-template-columns: repeat(5, 1fr);
 }
+
+.ready-button {
+    justify-content: center;
+    width: 200px;
+    height: 100px;
+}

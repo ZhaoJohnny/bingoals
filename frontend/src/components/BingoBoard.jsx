@@ -7,6 +7,7 @@ function BingoBoard({ title, boardID }) {
     Array.from({ length: 25 }, (_, index) => ({ index, content: '' }))
   );
   const [loading, setLoading] = useState(true);
+  const [boardState, setBoardState] = useState('addingGoals');
 
   useEffect(() => {
     async function loadBoard() {
@@ -22,6 +23,10 @@ function BingoBoard({ title, boardID }) {
     }
     loadBoard();
   }, [boardID]);
+
+function handleReadyClick() {
+    setBoardState(boardState === 'addingGoals' ? 'playing' : 'addingGoals');
+  }
 
   if (loading) return <div className="bingo-board">Loading board…</div>;
 
@@ -40,6 +45,9 @@ function BingoBoard({ title, boardID }) {
           />
         ))}
       </div>
+      <button className="ready-button" onClick={handleReadyClick}>
+        {boardState === 'addingGoals' ? 'Finalize Board' : 'Edit Goals'}
+      </button>
     </div>
   );
 }
