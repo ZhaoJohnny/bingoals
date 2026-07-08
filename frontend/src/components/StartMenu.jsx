@@ -10,8 +10,20 @@ function StartMenu({ onCreate, onJoin }) {
             alert('Please enter a board ID');
             return;
         }
-        onJoin(playerID, boardID);
+        try {
+            const res = await fetch(`http://localhost:3001/api/board/${boardID}`);
+            const data = await res.json();
+            if (!data.success) {
+                alert('Please enter a valid board ID');
+                return;
+            }
+            onJoin(playerID, boardID);
+        } catch (error) {
+            console.error('Error checking board:', error);
+            alert('Something went wrong checking that board ID')
+        }
     }
+
     function handleCreateClick() {
         onCreate(playerID);
     }
