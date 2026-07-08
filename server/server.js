@@ -163,20 +163,6 @@ app.get('/api/board/:boardID', async (req, res) => {
   }
 });
 
-// TEMPORARY: resolves a display name to a users.id, creating a guest
-// account if one doesn't exist yet. Replace once real auth exists.
-async function getOrCreateUserId(client, playerName) {
-  const existing = await client.query('SELECT id FROM users WHERE name = $1 LIMIT 1', [playerName]);
-  if (existing.rows.length > 0) return existing.rows[0].id;
-
-  const guestEmail = `${playerName.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}@guest.local`;
-  const inserted = await client.query(
-    `INSERT INTO users (name, email, password) VALUES ($1, $2, 'guest') RETURNING id`,
-    [playerName, guestEmail]
-  );
-  return inserted.rows[0].id;
-}
-
 app.post('/api/create-game', async (req, res) => {
   const { playerID, title } = req.body;
 
@@ -188,7 +174,7 @@ app.post('/api/create-game', async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    const userId = await getOrCreateUserId(client, playerID);
+
     const boardTitle = title || `${playerID}'s Board`;
 
     // const boardResult = await client.query(
@@ -199,7 +185,7 @@ app.post('/api/create-game', async (req, res) => {
     // TODO: make the board IDs generate unique ids
     const boardResult = await client.query(
       `INSERT INTO boards (host_id, status) VALUES ($1, 'active') RETURNING id`,
-      [userId]
+      [playerID]
     );
     const boardId = boardResult.rows[0].id;
 
@@ -218,7 +204,7 @@ app.post('/api/create-game', async (req, res) => {
     // Register the creator as a player on this board
     await client.query(
       `INSERT INTO players (user_id, board_id) VALUES ($1, $2)`,
-      [userId, boardId]
+      [playerID, boardId]
     );
 
     await client.query('COMMIT');
