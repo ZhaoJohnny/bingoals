@@ -16,6 +16,7 @@ function LoginPage() {
             });
             if (response.ok) {
               const responseData = await response.json();
+              localStorage.setItem("token", responseData.token);
               localStorage.setItem("user", JSON.stringify(responseData.user));
               navigate("/start");
             }

@@ -3,6 +3,7 @@ import cors from 'cors';
 import pg from "pg";
 import dotenv from 'dotenv';
 import bcrypt from 'bcrypt';
+import jwt from "jsonwebtoken";
 dotenv.config();
 
 const app = express();
@@ -19,7 +20,31 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD,
   port: process.env.DB_PORT,
 });
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers["authorization"];
 
+  const token = authHeader && authHeader.split(" ")[1];
+
+  if (!token) {
+    return res.status(401).json({
+      success: false,
+      message: "No token provided",
+    });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    req.user = decoded;
+
+    next();
+  } catch (error) {
+    return res.status(403).json({
+      success: false,
+      message: "Invalid or expired token",
+    });
+  }
+}
 app.get('/', (req, res) => {
   res.send('Server is working');
 });
@@ -94,10 +119,17 @@ app.post("/api/login", async (req, res) => {
         message: "Invalid credentials",
       });
     }
+    
+    const token = jwt.sign(
+      { id: user.rows[0].id, email: user.rows[0].email },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
 
     res.json({
       success: true,
       message: "Login successful",
+      token: token,
       user: {
         id: user.rows[0].id,
         name: user.rows[0].name,
