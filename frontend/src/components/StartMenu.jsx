@@ -12,7 +12,11 @@ function StartMenu({ onCreate, onJoin }) {
             return;
         }
         try {
-            const res = await fetch(`http://localhost:3001/api/board/${boardID}`);
+            const res = await fetch(`http://localhost:3001/api/board/${boardID}`, {
+                headers: {
+                    authorization: `Bearer ${localStorage.getItem('token')}`
+                },
+            });
             const data = await res.json();
             if (!data.success) {
                 alert('Please enter a valid board ID');
