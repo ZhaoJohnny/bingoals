@@ -34,11 +34,14 @@ function authenticateToken(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
+    
     req.user = decoded;
 
     next();
   } catch (error) {
+      console.error("JWT verify error:", error.message);
+      console.log("Token received:", token);
+      console.log("JWT_SECRET exists:", !!process.env.JWT_SECRET);
     return res.status(403).json({
       success: false,
       message: "Invalid or expired token",
@@ -119,7 +122,6 @@ app.post("/api/login", async (req, res) => {
         message: "Invalid credentials",
       });
     }
-    
     const token = jwt.sign(
       { id: user.rows[0].id, email: user.rows[0].email },
       process.env.JWT_SECRET,
@@ -195,13 +197,13 @@ app.get('/api/board/:boardID', async (req, res) => {
   }
 });
 
-app.post('/api/create-game', async (req, res) => {
-  const { playerID, title } = req.body;
-
+app.post('/api/create-game', authenticateToken, async (req, res) => {
+  const { title } = req.body;
+  const playerID = req.user.id;
   if (!playerID) {
     return res.status(400).json({ success: false, message: 'playerID is required' });
   }
-
+  
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
