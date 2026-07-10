@@ -39,9 +39,6 @@ function authenticateToken(req, res, next) {
 
     next();
   } catch (error) {
-      console.error("JWT verify error:", error.message);
-      console.log("Token received:", token);
-      console.log("JWT_SECRET exists:", !!process.env.JWT_SECRET);
     return res.status(403).json({
       success: false,
       message: "Invalid or expired token",
@@ -82,10 +79,15 @@ app.post("/api/register", async (req, res) => {
        RETURNING id, name, email, created_at`,
       [name, email, passwordHash]
     );
-
+    const token = jwt.sign(
+      { id: user.rows[0].id, email: user.rows[0].email },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
     res.status(201).json({
       success: true,
       message: "Account created successfully",
+      token: token,
       user: result.rows[0],
     });
   } catch (error) {
@@ -146,7 +148,7 @@ app.post("/api/login", async (req, res) => {
     });
   }
 });
-app.post('/api/bingo-square', async (req, res) => {
+app.post('/api/bingo-square', authenticateToken, async (req, res) => {
   const { boardID, index, content } = req.body;
 
   if (boardID === undefined || index === undefined) {
@@ -170,7 +172,7 @@ app.post('/api/bingo-square', async (req, res) => {
   }
 });
 
-app.get('/api/board/:boardID', async (req, res) => {
+app.get('/api/board/:boardID', authenticateToken, async (req, res) => {
   const { boardID } = req.params;
 
   try {

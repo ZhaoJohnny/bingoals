@@ -11,7 +11,11 @@ function BingoBoard({ title, boardID }) {
   useEffect(() => {
     async function loadBoard() {
       try {
-        const res = await fetch(`http://localhost:3001/api/board/${boardID}`);
+        const res = await fetch(`http://localhost:3001/api/board/${boardID}`, {
+          headers: {
+            authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
         const data = await res.json();
         if (data.success) setCells(data.cells);
       } catch (err) {

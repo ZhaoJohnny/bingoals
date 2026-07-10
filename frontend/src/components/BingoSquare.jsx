@@ -13,6 +13,7 @@ function BingoSquare({ content, boardID, index }) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            authorization: `Bearer ${localStorage.getItem('token')}`,
           },
           body: JSON.stringify({
             boardID,
