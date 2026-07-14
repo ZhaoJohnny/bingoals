@@ -46,7 +46,7 @@ function BingoBoard({ title, boardID }) {
         console.error('Failed to get board status', err);
       }
     }
-
+    
     async function loadEverything() {
       setLoading(true);
       await loadBoard();
