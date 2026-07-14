@@ -309,8 +309,26 @@ app.get('/api/board/:boardID', async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to fetch board' });
   }
 });
-app.post('/api/squares/toggle-marker', authenticateToken, async (req, res) => {
-  const { boardID, index } = req.body;
+app.get('/api/board/:boardID/status', authenticateToken, async (req, res) => {
+  const { boardID } = req.params;
+  const playerID = req.user.id;
+  try {
+  const result = await pool.query(
+    `SELECT status FROM boards WHERE id = $1`,
+    [boardID]
+  );
+  if (result.rows.length === 0) {
+    return res.status(404).json({ success: false, message: 'Board not found' });
+  }
+  res.json({ success: true, status: result.rows[0].status });
+  } catch (error) {
+    console.error('Error fetching board status:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch board status' });
+  }
+});
+app.post('/api/board/:boardID/square/:index/toggle-marker', authenticateToken, async (req, res) => {
+  const { boardID } = req.params;
+  const { index } = req.params; 
   const playerID = req.user.id;
   try{
   const squareResult = await pool.query(

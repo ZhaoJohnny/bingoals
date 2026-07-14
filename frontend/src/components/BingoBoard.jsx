@@ -6,6 +6,8 @@ function BingoBoard({ title, boardID }) {
   const [cells, setCells] = useState(
     Array.from({ length: 25 }, (_, index) => ({ index, content: '' }))
   );
+
+  const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -16,16 +18,72 @@ function BingoBoard({ title, boardID }) {
             authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
+
         const data = await res.json();
-        if (data.success) setCells(data.cells);
+
+        if (data.success) {
+          setCells(data.cells);
+        }
       } catch (err) {
         console.error('Failed to load board', err);
-      } finally {
-        setLoading(false);
       }
     }
-    loadBoard();
+
+    async function loadBoardStatus() {
+      try {
+        const res = await fetch(`http://localhost:3001/api/board/${boardID}/status`, {
+          headers: {
+            authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          setStatus(data.status);
+        }
+      } catch (err) {
+        console.error('Failed to get board status', err);
+      }
+    }
+
+    async function loadEverything() {
+      setLoading(true);
+      await loadBoard();
+      await loadBoardStatus();
+      setLoading(false);
+    }
+
+    loadEverything();
   }, [boardID]);
+
+  async function handleToggleMarker(index) {
+    try {
+      const response = await fetch(
+        `http://localhost:3001/api/board/${boardID}/square/${index}/toggle-marker`,
+        {
+          method: 'POST',
+          headers: {
+            authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        setCells((prevCells) =>
+          prevCells.map((cell) =>
+            cell.index === index
+              ? { ...cell, marked: data.marked }
+              : cell
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Failed to toggle marker:', error);
+    }
+  }
 
   if (loading) return <div className="bingo-board">Loading board…</div>;
 
@@ -34,6 +92,7 @@ function BingoBoard({ title, boardID }) {
       <div className="bingo-board-header">
         {title}
       </div>
+
       <div className="bingo-board-grid">
         {cells.map((cell) => (
           <BingoSquare
@@ -41,6 +100,9 @@ function BingoBoard({ title, boardID }) {
             content={cell.content}
             boardID={boardID}
             index={cell.index}
+            status={status}
+            marked={cell.marked}
+            onToggleMarker={handleToggleMarker}
           />
         ))}
       </div>
