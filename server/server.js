@@ -314,6 +314,27 @@ app.get('/api/board/:boardID', async (req, res) => {
   }
 });
 
+app.get('/api/board/:boardID/players', async (req, res) => {
+  const { boardID } = req.params;
+
+  try {
+    const result = await pool.query(
+      `SELECT name
+       FROM users
+       WHERE board_id = $1`,
+      [boardID]
+    );
+
+    res.json({
+      success: true,
+      players: result.rows.map(r => r.name),
+    });
+  } catch (error) {
+    console.error('Error fetching players', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch players' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Backend API running on http://localhost:${PORT}`);
 });
