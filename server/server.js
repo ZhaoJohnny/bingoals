@@ -309,27 +309,28 @@ app.get('/api/board/:boardID', async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to fetch board' });
   }
 });
-app.post('/api/squares/toggle-marker', authenticateToken, async (req, res) => {
-
+app.post('/api/squares/toggle-marker', async (req, res) => {
+  const { playerID, boardID, index } = req.body;
   try{
   const squareResult = await pool.query(
-      "SELECT id, board_id FROM squares WHERE id = $1",
-      [squareId]
+      "SELECT id FROM squares WHERE board_id = $1 AND index = $2",
+      [boardID, index]
     );
+    console.log('Square result:', squareResult.rows);
   if (squareResult.rows.length === 0) {
     return res.status(404).json({
       success: false,
       message: "Square not found",
     });
   } 
-  const square = squareResult.rows[0];
-  const boardId = square.board_id;
-  
+
+  const squareID = squareResult.rows[0].id;
+
   const existingMarker = await pool.query(
       `SELECT id FROM marker
        WHERE player_id = $1 AND square_id = $2 AND board_id = $3`,
-      [playerId, squareId, boardId]
-    );
+      [playerID, squareID, boardID]
+    ); 
 
   if (existingMarker.rows.length > 0) {
     await pool.query(
@@ -343,7 +344,7 @@ app.post('/api/squares/toggle-marker', authenticateToken, async (req, res) => {
   } else {
     await pool.query(
       `INSERT INTO marker (player_id, square_id, board_id) VALUES ($1, $2, $3)`,
-      [playerId, squareId, boardId]
+      [playerID, squareID, boardID]
     );
     return res.json({
       success: true,
