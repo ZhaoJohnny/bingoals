@@ -309,14 +309,15 @@ app.get('/api/board/:boardID', async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to fetch board' });
   }
 });
-app.post('/api/squares/toggle-marker', async (req, res) => {
-  const { playerID, boardID, index } = req.body;
+app.post('/api/squares/toggle-marker', authenticateToken, async (req, res) => {
+  const { boardID, index } = req.body;
+  const playerID = req.user.id;
   try{
   const squareResult = await pool.query(
       "SELECT id FROM squares WHERE board_id = $1 AND index = $2",
       [boardID, index]
     );
-    console.log('Square result:', squareResult.rows);
+
   if (squareResult.rows.length === 0) {
     return res.status(404).json({
       success: false,
