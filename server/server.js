@@ -309,7 +309,56 @@ app.get('/api/board/:boardID', async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to fetch board' });
   }
 });
+app.post('/api/squares/toggle-marker', authenticateToken, async (req, res) => {
 
+  try{
+  const squareResult = await pool.query(
+      "SELECT id, board_id FROM squares WHERE id = $1",
+      [squareId]
+    );
+  if (squareResult.rows.length === 0) {
+    return res.status(404).json({
+      success: false,
+      message: "Square not found",
+    });
+  } 
+  const square = squareResult.rows[0];
+  const boardId = square.board_id;
+  
+  const existingMarker = await pool.query(
+      `SELECT id FROM marker
+       WHERE player_id = $1 AND square_id = $2 AND board_id = $3`,
+      [playerId, squareId, boardId]
+    );
+
+  if (existingMarker.rows.length > 0) {
+    await pool.query(
+      `DELETE FROM marker WHERE id = $1`,
+      [existingMarker.rows[0].id]
+    );
+    return res.json({
+      success: true,
+      message: "Marker removed",
+    });
+  } else {
+    await pool.query(
+      `INSERT INTO marker (player_id, square_id, board_id) VALUES ($1, $2, $3)`,
+      [playerId, squareId, boardId]
+    );
+    return res.json({
+      success: true,
+      message: "Marker added",
+    });
+  }
+  } catch (error) { 
+    console.error("Toggle marker error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Server error toggling marker",
+    });
+  }
+});
 app.listen(PORT, () => {
   console.log(`Backend API running on http://localhost:${PORT}`);
 });
