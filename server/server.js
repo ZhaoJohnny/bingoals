@@ -79,6 +79,10 @@ app.post("/api/register", async (req, res) => {
        RETURNING id, name, email, created_at`,
       [name, email, passwordHash]
     );
+    const user = await pool.query(
+      "SELECT id, name, email, password FROM users WHERE email = $1",
+      [email]
+    );
     const token = jwt.sign(
       { id: user.rows[0].id, email: user.rows[0].email },
       process.env.JWT_SECRET,
