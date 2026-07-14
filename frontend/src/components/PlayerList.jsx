@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import '../styles/PlayerList.css';
 
-function PlayersList({ boardID }) {
+function PlayerList({ boardID }) {
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -39,4 +39,4 @@ function PlayersList({ boardID }) {
   );
 }
 
-export default PlayersList;
+export default PlayerList;
