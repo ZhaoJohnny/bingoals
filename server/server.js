@@ -243,6 +243,12 @@ app.post('/api/create-game', authenticateToken, async (req, res) => {
       [playerID, boardId]
     );
 
+    // Assign this board as the user's current board
+    await client.query(
+      `UPDATE users SET board_id = $1 WHERE id = $2`,
+      [boardId, playerID]
+    );
+
     await client.query('COMMIT');
 
     res.json({
@@ -315,15 +321,17 @@ app.get('/api/board/:boardID/players', async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT name
-       FROM users
-       WHERE board_id = $1`,
+      `SELECT u.id, u.name, p.ready
+       FROM players p
+       JOIN users u ON u.id = p.player_id
+       WHERE p.board_id = $1
+       ORDER BY p.joined_at`,
       [boardID]
     );
 
     res.json({
       success: true,
-      players: result.rows.map(r => r.name),
+      players: result.rows.map(r => ({ id: r.id, name: r.name, ready: r.ready })),
     });
   } catch (error) {
     console.error('Error fetching players', error);
