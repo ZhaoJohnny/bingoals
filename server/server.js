@@ -202,6 +202,8 @@ app.get('/api/board/:boardID', authenticateToken, async (req, res) => {
 app.post('/api/create-game', authenticateToken, async (req, res) => {
   const { title } = req.body;
   const playerID = req.user.id;
+  const name = req.user.name;
+
   if (!playerID) {
     return res.status(400).json({ success: false, message: 'playerID is required' });
   }
@@ -239,7 +241,7 @@ app.post('/api/create-game', authenticateToken, async (req, res) => {
 
     // Register the creator as a player on this board
     await client.query(
-      `INSERT INTO players (user_id, board_id) VALUES ($1, $2)`,
+      `INSERT INTO players (user_id, board_id, ready) VALUES ($1, $2, false)`,
       [playerID, boardId]
     );
 
@@ -321,11 +323,11 @@ app.get('/api/board/:boardID/players', async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT u.id, u.name, p.ready
-       FROM players p
-       JOIN users u ON u.id = p.player_id
-       WHERE p.board_id = $1
-       ORDER BY p.joined_at`,
+      `SELECT name, ready
+       FROM players 
+       JOIN users
+       ON players.user_id = users.id
+       WHERE players.board_id = $1`,
       [boardID]
     );
 
