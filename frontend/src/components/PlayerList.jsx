@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import '../styles/PlayersList.css';
+import '../styles/PlayerList.css';
 
 function PlayersList({ boardID }) {
   const [players, setPlayers] = useState([]);

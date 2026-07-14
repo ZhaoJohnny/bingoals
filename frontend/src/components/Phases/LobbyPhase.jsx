@@ -1,6 +1,6 @@
-import PlayersList from '../components/PlayersList';
-import ReadyButton from '../components/ReadyButton';
-import '../styles/LobbyPhase.css';
+import PlayersList from "../PlayerList";
+import ReadyButton from "../ReadyButton";
+import "../../styles/LobbyPhase.css";
 
 function LobbyPhase({ boardID, boardState, onToggle }) {
   return (
