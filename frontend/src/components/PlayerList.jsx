@@ -26,8 +26,13 @@ function PlayersList({ boardID }) {
     <div className="players-list">
       <h3>Players</h3>
       <ul>
-        {players.map((name, i) => (
-          <li key={i}>{name}</li>
+        {players.map((player) => (
+          <li key={player.id}>
+            <span className="player-name">{player.name}</span>
+            <span className={player.ready ? 'ready-mark' : 'not-ready-mark'}>
+              {player.ready ? '✓' : '✗'}
+            </span>
+          </li>
         ))}
       </ul>
     </div>
