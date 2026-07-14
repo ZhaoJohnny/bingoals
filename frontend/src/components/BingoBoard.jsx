@@ -2,12 +2,11 @@ import { useState, useEffect } from 'react';
 import BingoSquare from './BingoSquare';
 import '../styles/BingoBoard.css';
 
-function BingoBoard({ title, boardID }) {
+function BingoBoard({ title, boardID, boardState }) {
   const [cells, setCells] = useState(
     Array.from({ length: 25 }, (_, index) => ({ index, content: '' }))
   );
   const [loading, setLoading] = useState(true);
-  const [boardState, setBoardState] = useState('addingGoals');
 
   useEffect(() => {
     async function loadBoard() {
@@ -23,10 +22,6 @@ function BingoBoard({ title, boardID }) {
     }
     loadBoard();
   }, [boardID]);
-
-function handleReadyClick() {
-    setBoardState(boardState === 'addingGoals' ? 'playing' : 'addingGoals');
-  }
 
   if (loading) return <div className="bingo-board">Loading board…</div>;
 
@@ -45,11 +40,8 @@ function handleReadyClick() {
           />
         ))}
       </div>
-      <button className="ready-button" onClick={handleReadyClick}>
-        {boardState === 'addingGoals' ? 'Finalize Board' : 'Edit Goals'}
-      </button>
     </div>
-);
+  );
 }
 
 export default BingoBoard;
