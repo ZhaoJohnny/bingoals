@@ -355,6 +355,7 @@ app.put('/api/board/:boardID/bingo', authenticateToken, async (req, res) => {
       success: false,
       message: 'Failed to end game',
     });
+  }
 });
 app.post('/api/board/:boardID/square/:index/toggle-marker', authenticateToken, async (req, res) => {
   const { boardID } = req.params;
