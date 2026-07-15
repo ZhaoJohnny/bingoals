@@ -311,8 +311,8 @@ app.get('/api/board/:boardID/status', authenticateToken, async (req, res) => {
 });
 app.put('/api/board/:boardID/bingo', authenticateToken, async (req, res) => {
   const { boardID } = req.params;
-  const { playerID } = req.user.id;
-
+  const playerID = req.user.id;
+  console.log(`Player ${playerID} is attempting to declare BINGO on board ${boardID}`);
   try {
     const squaresCountResult = await pool.query(
       `SELECT COUNT(*) FROM squares WHERE board_id = $1`,
@@ -321,9 +321,10 @@ app.put('/api/board/:boardID/bingo', authenticateToken, async (req, res) => {
     const squaresCount = parseInt(squaresCountResult.rows[0].count, 10);
     const markerCountResult = await pool.query(
       `SELECT COUNT(*) FROM marker WHERE board_id = $1 AND player_id = $2`,
-      [boardID, winnerID]
+      [boardID, playerID]
     );
     const markerCount = parseInt(markerCountResult.rows[0].count, 10);
+    console.log(`Player ${playerID} has marked ${markerCount} out of ${squaresCount} squares on board ${boardID}`);
     if (markerCount < squaresCount) {
       return res.status(400).json({
         success: false,
@@ -337,7 +338,7 @@ app.put('/api/board/:boardID/bingo', authenticateToken, async (req, res) => {
       );
       const winnerID = endGameResult.rows[0].winner_id;
     }
-    if (result.rows.length === 0) {
+    if (endGameResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'Board not found',
@@ -347,7 +348,7 @@ app.put('/api/board/:boardID/bingo', authenticateToken, async (req, res) => {
     res.json({
       success: true,
       message: winnerID ? 'Game ended with a winner' : 'Game ended because time ran out',
-      board: result.rows[0],
+      board: endGameResult.rows[0],
     });
   }catch (error) {
     console.error('End game error:', error);
