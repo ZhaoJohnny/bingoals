@@ -56,6 +56,20 @@ function BingoBoard({ title, boardID }) {
 
     loadEverything();
   }, [boardID]);
+  async function handleGameEnd() {
+    try {
+      const response = await fetch(`http://localhost:3001/api/board/${boardID}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({ status: 'ended' }),
+      });
+    } catch (error) {
+      console.error('Failed to end game:', error);
+    }
+  }
 
   async function handleToggleMarker(index) {
     try {
