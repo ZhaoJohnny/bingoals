@@ -201,7 +201,7 @@ app.post('/api/create-game', authenticateToken, async (req, res) => {
     // Keep in mind that for now it does not randomly generate unique ids, and only does a small range 
     // TODO: make the board IDs generate unique ids
     const boardResult = await client.query(
-      `INSERT INTO boards (host_id, status) VALUES ($1, 'active') RETURNING id`,
+      `INSERT INTO boards (host_id, status) VALUES ($1, 'lobby') RETURNING id`,
       [playerID]
     );
     const boardId = boardResult.rows[0].id;
@@ -440,7 +440,6 @@ app.get('/api/board/:boardID/players', async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT users.id, name, ready
-      `SELECT users.id, name, ready
        FROM players 
        JOIN users
        ON players.user_id = users.id
@@ -461,7 +460,7 @@ app.get('/api/board/:boardID/players', async (req, res) => {
 app.post('/api/board/:boardID/ready', authenticateToken, async (req, res) => {
     const playerID = req.user.id;
     const {boardID} = req.params;
-    console.log('Received ready toggle request for player:', playerID, 'on board:', boardID);
+    console.log('Checking ready for:', { playerID, boardID });
   try {
     const current = await pool.query(
       `SELECT ready FROM players WHERE user_id = $1 AND board_id = $2`,
@@ -485,6 +484,7 @@ app.post('/api/board/:boardID/ready', authenticateToken, async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to update ready status' });
   }
 });
+
 
 app.listen(PORT, () => {
   console.log(`Backend API running on http://localhost:${PORT}`);
