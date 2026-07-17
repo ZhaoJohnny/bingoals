@@ -463,6 +463,7 @@ app.post('/api/board/:boardID/ready', authenticateToken, async (req, res) => {
 <<<<<<< HEAD
 <<<<<<< HEAD
     const {boardID} = req.params;
+    console.log('Checking ready for:', { playerID, boardID });
   try {
     const current = await pool.query(
       `SELECT ready FROM players WHERE user_id = $1 AND board_id = $2`,
