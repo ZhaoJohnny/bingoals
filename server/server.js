@@ -323,6 +323,7 @@ app.get('/api/board/:boardID/status', authenticateToken, async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to fetch board status' });
   }
 });
+
 app.put('/api/board/:boardID/bingo', authenticateToken, async (req, res) => {
   const { boardID } = req.params;
   const playerID = req.user.id;
@@ -460,7 +461,6 @@ app.get('/api/board/:boardID/players', async (req, res) => {
 app.post('/api/board/:boardID/ready', authenticateToken, async (req, res) => {
     const playerID = req.user.id;
     const {boardID} = req.params;
-    console.log('Checking ready for:', { playerID, boardID });
   try {
     const current = await pool.query(
       `SELECT ready FROM players WHERE user_id = $1 AND board_id = $2`,
@@ -483,6 +483,41 @@ app.post('/api/board/:boardID/ready', authenticateToken, async (req, res) => {
     console.error('Error with ready button', error);
     res.status(500).json({ success: false, message: 'Failed to update ready status' });
   }
+});
+
+app.get('/api/board/:boardID/start', authenticateToken, async(req, res) => {
+    const playerID = req.user.id;
+    const {boardID} = req.params;
+    try{
+        const host = await pool.query(
+            'SELECT host_id FROM boards WHERE id = 78',
+            [boardID]
+        );
+
+        if (host.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Player not found on this board' });
+        }
+
+        if(playerID === host.rows[0]) {
+            const players = await pool.query(
+                'SELECT ready FROM players WHERE board_id = $1',
+                [boardID]
+            )
+        const someoneNotReady = players.rows.some(p => p.ready === false);
+
+        if (someoneNotReady) {
+            return res.json({ success: false, message: 'Not all players are ready' });
+        }
+
+        return res.json({success: true, message: "Game will start"});
+        } else {
+            return res.json({ success: false, message: 'Player is not the host' });
+        }
+        
+    } catch(error) {
+        console.error('Error with the start button', error);
+        res.status(500).json({ success: false, message: 'Failed to start game' });
+    }
 });
 
 
