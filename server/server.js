@@ -153,6 +153,7 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
+
 app.post('/api/bingo-square', authenticateToken, async (req, res) => {
   const { boardID, index, content } = req.body;
 
@@ -438,6 +439,7 @@ app.get('/api/board/:boardID/players', async (req, res) => {
 
   try {
     const result = await pool.query(
+      `SELECT users.id, name, ready
       `SELECT users.id, name, ready
        FROM players 
        JOIN users
