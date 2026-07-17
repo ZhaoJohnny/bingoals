@@ -1,10 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import '../styles/BingoSquare.css';
 
-function BingoSquare({ content, boardID, index }) {
+function BingoSquare({ content, boardID, index, status, marked, onToggleMarker }) {
   const [text, setText] = useState(content || '');
 
+  useEffect(() => {
+    setText(content || '');
+  }, [content]);
+
   async function handleKeyDown(e) {
+    if (status !== 'creation') return;
+    if (status === 'ended') return(
+      <div>{text}</div>
+    );
     if (e.key === 'Enter') {
       e.preventDefault();
 
@@ -33,12 +41,24 @@ function BingoSquare({ content, boardID, index }) {
     }
   }
 
+  if (status === 'playing') {
+    return (
+      <button
+        className={marked ? 'bingo-square marked' : 'bingo-square'}
+        onClick={() => onToggleMarker(index)}
+      >
+        {text}
+      </button>
+    );
+  }
+
   return (
     <input
       className="bingo-square"
       value={text}
       onChange={(e) => setText(e.target.value)}
       onKeyDown={handleKeyDown}
+      disabled={status !== 'creation'}
     />
   );
 }

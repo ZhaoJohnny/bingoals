@@ -176,33 +176,6 @@ app.post('/api/bingo-square', authenticateToken, async (req, res) => {
   }
 });
 
-app.get('/api/board/:boardID', authenticateToken, async (req, res) => {
-  const { boardID } = req.params;
-
-  try {
-    const boardResult = await pool.query(`SELECT * FROM boards WHERE id = $1`, [boardID]);
-    if (boardResult.rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'Board not found' });
-    }
-    const board = boardResult.rows[0];
-
-    const squaresResult = await pool.query(
-      `SELECT id, index, goal FROM squares WHERE board_id = $1 ORDER BY index`,
-      [boardID]
-    );
-
-    res.json({
-      success: true,
-      boardID: board.id,
-      title: board.title,
-      cells: squaresResult.rows.map(sq => ({ squareId: sq.id, index: sq.index, content: sq.goal })),
-    });
-  } catch (error) {
-    console.error('Error fetching board:', error);
-    res.status(500).json({ success: false, message: 'Failed to fetch board' });
-  }
-});
-
 app.post('/api/create-game', authenticateToken, async (req, res) => {
   const { title } = req.body;
   const playerID = req.user.id;
@@ -271,54 +244,191 @@ app.post('/api/create-game', authenticateToken, async (req, res) => {
   }
 });
 
-app.post('/api/bingo-square', async (req, res) => {
-  const { boardID, index, content } = req.body;
-
-  if (boardID === undefined || index === undefined) {
-    return res.status(400).json({ success: false, message: 'boardID and index are required' });
-  }
+app.get('/api/board/:boardID', authenticateToken, async (req, res) => {
+  const { boardID } = req.params;
+  const playerID = req.user.id;
 
   try {
-    const result = await pool.query(
-      `UPDATE squares SET goal = $1 WHERE board_id = $2 AND index = $3 RETURNING id, goal`,
-      [content, boardID, index]
+    const boardResult = await pool.query(
+      `SELECT * FROM boards WHERE id = $1`,
+      [boardID]
     );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'Square not found for that board/index' });
-    }
-
-    res.json({ success: true, message: 'Bingo square saved', square: result.rows[0] });
-  } catch (error) {
-    console.error('Error saving bingo square:', error);
-    res.status(500).json({ success: false, message: 'Failed to save bingo square' });
-  }
-});
-
-app.get('/api/board/:boardID', async (req, res) => {
-  const { boardID } = req.params;
-
-  try {
-    const boardResult = await pool.query(`SELECT * FROM boards WHERE id = $1`, [boardID]);
     if (boardResult.rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'Board not found' });
+      return res.status(404).json({
+        success: false,
+        message: 'Board not found',
+      });
     }
+
     const board = boardResult.rows[0];
 
     const squaresResult = await pool.query(
-      `SELECT id, index, goal FROM squares WHERE board_id = $1 ORDER BY index`,
-      [boardID]
+      `
+      SELECT 
+        squares.id,
+        squares.index,
+        squares.goal,
+        CASE 
+          WHEN marker.id IS NULL THEN false
+          ELSE true
+        END AS marked
+      FROM squares
+      LEFT JOIN marker
+        ON marker.square_id = squares.id
+        AND marker.player_id = $2
+        AND marker.board_id = $1
+      WHERE squares.board_id = $1
+      ORDER BY squares.index ASC
+      `,
+      [boardID, playerID]
     );
 
     res.json({
       success: true,
       boardID: board.id,
       title: board.title,
-      cells: squaresResult.rows.map(sq => ({ squareId: sq.id, index: sq.index, content: sq.goal })),
+      cells: squaresResult.rows.map((sq) => ({
+        squareId: sq.id,
+        index: sq.index,
+        content: sq.goal,
+        marked: sq.marked,
+      })),
     });
   } catch (error) {
     console.error('Error fetching board:', error);
-    res.status(500).json({ success: false, message: 'Failed to fetch board' });
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch board',
+    });
+  }
+});
+app.get('/api/board/:boardID/status', authenticateToken, async (req, res) => {
+  const { boardID } = req.params;
+  const playerID = req.user.id;
+  try {
+  const result = await pool.query(
+    `SELECT status FROM boards WHERE id = $1`,
+    [boardID]
+  );
+  if (result.rows.length === 0) {
+    return res.status(404).json({ success: false, message: 'Board not found' });
+  }
+  res.json({ success: true, status: result.rows[0].status });
+  } catch (error) {
+    console.error('Error fetching board status:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch board status' });
+  }
+});
+app.put('/api/board/:boardID/bingo', authenticateToken, async (req, res) => {
+  const { boardID } = req.params;
+  const playerID = req.user.id;
+  console.log(`Player ${playerID} is attempting to declare BINGO on board ${boardID}`);
+  try {
+    
+    const squaresCountResult = await pool.query(
+      `SELECT COUNT(*) FROM squares WHERE board_id = $1`,
+      [boardID]
+    );
+    const squaresCount = parseInt(squaresCountResult.rows[0].count, 10);
+    const markerCountResult = await pool.query(
+      `SELECT COUNT(*) FROM marker WHERE board_id = $1 AND player_id = $2`,
+      [boardID, playerID]
+    );
+    const markerCount = parseInt(markerCountResult.rows[0].count, 10);
+    console.log(`Player ${playerID} has marked ${markerCount} out of ${squaresCount} squares on board ${boardID}`);
+    if (markerCount < squaresCount) {
+      return res.status(400).json({
+        success: false,
+        message: 'Player has not marked all squares',
+      });
+    }
+    else {
+      const endGameResult = await pool.query(
+        `UPDATE boards SET status = 'ended', winner_id = $1, ended_at = NOW() WHERE id = $2 RETURNING id, status, winner_id, ended_at`,
+        [playerID, boardID]
+      );
+      const winnerID = endGameResult.rows[0].winner_id;
+      return res.json({
+        success: true,
+        message: 'Game ended with a winner',
+        winnerID: winnerID,
+      });
+    }
+    if (endGameResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Board not found',
+      });
+    }
+
+    res.json({
+      success: true,
+      message: winnerID ? 'Game ended with a winner' : 'Game ended because time ran out',
+      board: endGameResult.rows[0],
+    });
+  }catch (error) {
+    console.error('End game error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to end game',
+    });
+  }
+});
+app.post('/api/board/:boardID/square/:index/toggle-marker', authenticateToken, async (req, res) => {
+  const { boardID } = req.params;
+  const { index } = req.params; 
+  const playerID = req.user.id;
+  try{
+  const squareResult = await pool.query(
+      "SELECT id FROM squares WHERE board_id = $1 AND index = $2",
+      [boardID, index]
+    );
+
+  if (squareResult.rows.length === 0) {
+    return res.status(404).json({
+      success: false,
+      message: "Square not found",
+    });
+  } 
+
+  const squareID = squareResult.rows[0].id;
+
+  const existingMarker = await pool.query(
+      `SELECT id FROM marker
+       WHERE player_id = $1 AND square_id = $2 AND board_id = $3`,
+      [playerID, squareID, boardID]
+    ); 
+
+  if (existingMarker.rows.length > 0) {
+    await pool.query(
+      `DELETE FROM marker WHERE id = $1`,
+      [existingMarker.rows[0].id]
+    );
+    return res.json({
+      success: true,
+      message: "Marker removed",
+    });
+  } else {
+    await pool.query(
+      `INSERT INTO marker (player_id, square_id, board_id) VALUES ($1, $2, $3)`,
+      [playerID, squareID, boardID]
+    );
+    return res.json({
+      success: true,
+      message: "Marker added",
+      marked: true,
+    });
+  }
+  } catch (error) { 
+    console.error("Toggle marker error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Server error toggling marker",
+      marked: false,
+    });
   }
 });
 
