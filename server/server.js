@@ -485,12 +485,12 @@ app.post('/api/board/:boardID/ready', authenticateToken, async (req, res) => {
   }
 });
 
-app.get('/api/board/:boardID/start', authenticateToken, async(req, res) => {
+app.post('/api/board/:boardID/start', authenticateToken, async(req, res) => {
     const playerID = req.user.id;
     const {boardID} = req.params;
     try{
         const host = await pool.query(
-            'SELECT host_id FROM boards WHERE id = 78',
+            'SELECT host_id FROM boards WHERE id = $1',
             [boardID]
         );
 
@@ -498,7 +498,7 @@ app.get('/api/board/:boardID/start', authenticateToken, async(req, res) => {
             return res.status(404).json({ success: false, message: 'Player not found on this board' });
         }
 
-        if(playerID === host.rows[0]) {
+        if(playerID === host.rows[0].host_id) {
             const players = await pool.query(
                 'SELECT ready FROM players WHERE board_id = $1',
                 [boardID]
@@ -510,6 +510,8 @@ app.get('/api/board/:boardID/start', authenticateToken, async(req, res) => {
         }
 
         return res.json({success: true, message: "Game will start"});
+        await pool.query(`UPDATE boards SET status = 'creation' WHERE id = $1`, [boardID]);
+
         } else {
             return res.json({ success: false, message: 'Player is not the host' });
         }
