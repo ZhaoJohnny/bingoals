@@ -314,6 +314,7 @@ app.put('/api/board/:boardID/bingo', authenticateToken, async (req, res) => {
   const playerID = req.user.id;
   console.log(`Player ${playerID} is attempting to declare BINGO on board ${boardID}`);
   try {
+    
     const squaresCountResult = await pool.query(
       `SELECT COUNT(*) FROM squares WHERE board_id = $1`,
       [boardID]
@@ -337,6 +338,11 @@ app.put('/api/board/:boardID/bingo', authenticateToken, async (req, res) => {
         [playerID, boardID]
       );
       const winnerID = endGameResult.rows[0].winner_id;
+      return res.json({
+        success: true,
+        message: 'Game ended with a winner',
+        winnerID: winnerID,
+      });
     }
     if (endGameResult.rows.length === 0) {
       return res.status(404).json({

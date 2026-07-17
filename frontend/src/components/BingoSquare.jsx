@@ -10,7 +10,9 @@ function BingoSquare({ content, boardID, index, status, marked, onToggleMarker }
 
   async function handleKeyDown(e) {
     if (status !== 'creation') return;
-
+    if (status === 'ended') return(
+      <div>{text}</div>
+    );
     if (e.key === 'Enter') {
       e.preventDefault();
 

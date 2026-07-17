@@ -2,12 +2,11 @@ import { useState, useEffect } from 'react';
 import BingoSquare from './BingoSquare';
 import '../styles/BingoBoard.css';
 
-function BingoBoard({ title, boardID }) {
+function BingoBoard({ title, boardID, status }) {
   const [cells, setCells] = useState(
     Array.from({ length: 25 }, (_, index) => ({ index, content: '' }))
   );
 
-  const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,48 +28,18 @@ function BingoBoard({ title, boardID }) {
       }
     }
 
-    async function loadBoardStatus() {
-      try {
-        const res = await fetch(`http://localhost:3001/api/board/${boardID}/status`, {
-          headers: {
-            authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
-
-        const data = await res.json();
-
-        if (data.success) {
-          setStatus(data.status);
-        }
-      } catch (err) {
-        console.error('Failed to get board status', err);
-      }
-    }
+    
     
     async function loadEverything() {
       setLoading(true);
       await loadBoard();
-      await loadBoardStatus();
+      
       setLoading(false);
     }
 
     loadEverything();
-  }, [boardID]);
-  async function handleGameEnd() {
-    try {
-      const response = await fetch(`http://localhost:3001/api/board/${boardID}/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({ status: 'ended' }),
-      });
-    } catch (error) {
-      console.error('Failed to end game:', error);
-    }
-  }
-
+    console.log('BingoBoard status:', status);
+  }, [boardID, status]);
   async function handleToggleMarker(index) {
     try {
       const response = await fetch(
