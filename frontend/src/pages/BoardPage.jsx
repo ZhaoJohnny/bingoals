@@ -63,12 +63,34 @@ function BoardPage() {
   useEffect(() => {
   loadBoardStatus();
   }, [boardID]);
-  return (
-    <div>
+  if (status === 'lobby') {
+    return (
+      <LobbyPhase boardID={boardID} />
+    );
+  }
+  if (status === 'creation') {
+    return (
+      <div>
       <BingoBoard title="BOARD NAME" boardID={boardID} status={status} />
-      <h1><BingoButton onClick={handleBingo} /></h1>
-    </div>
-  );
+      </div>
+    );
+  }
+  if (status === 'playing') {
+    return (
+      <div>
+      <BingoBoard title="BOARD NAME" boardID={boardID} status={status} />
+      <BingoButton onClick={handleBingo} />
+      </div>
+    );
+  }
+  else if(status === 'ended') {
+    return (
+      <div>
+      <BingoBoard title="BOARD NAME" boardID={boardID} status={status} />
+      <h2>Game has ended.</h2>
+      </div>
+    );
+  }
 }
 
 export default BoardPage;
