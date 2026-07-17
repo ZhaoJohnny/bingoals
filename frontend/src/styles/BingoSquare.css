@@ -1,10 +1,20 @@
 .bingo-square {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  box-sizing: border-box;
   border: 1px solid #333;
   background-color: #d9d9d9;
+
+  font: inherit;
+  color: inherit;
+  text-align: center;
+
   display: flex;
   align-items: center;
   justify-content: center;
-  aspect-ratio: 1;
+
+  padding: 8px;
+  margin: 0;
 }
 .bingo-square.marked {
   background-color: lightgreen;
