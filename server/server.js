@@ -438,7 +438,7 @@ app.get('/api/board/:boardID/players', async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT name, ready
+      `SELECT users.id, name, ready
        FROM players 
        JOIN users
        ON players.user_id = users.id
@@ -458,13 +458,11 @@ app.get('/api/board/:boardID/players', async (req, res) => {
 
 app.post('/api/board/:boardID/ready', authenticateToken, async (req, res) => {
     const playerID = req.user.id;
-    const {board_id} = req.params;
-
-  console.log('Checking ready for:', { playerID, board_id });
+    const {boardID} = req.params;
   try {
     const current = await pool.query(
       `SELECT ready FROM players WHERE user_id = $1 AND board_id = $2`,
-      [playerID, board_id]
+      [playerID, boardID]
     );
 
     if (current.rows.length === 0) {
@@ -475,7 +473,7 @@ app.post('/api/board/:boardID/ready', authenticateToken, async (req, res) => {
 
     const result = await pool.query(
       `UPDATE players SET ready = $1 WHERE user_id = $2 AND board_id = $3 RETURNING ready`,
-      [newReadyState, playerID, board_id]
+      [newReadyState, playerID, boardID]
     );
 
     res.json({ success: true, message: 'Ready status updated', ready: result.rows[0].ready });

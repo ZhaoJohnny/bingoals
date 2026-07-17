@@ -4,14 +4,14 @@ import '../styles/ReadyButton.css';
 function ReadyButton({ boardID, playerID, onToggle }) {
   const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(false);
-
   async function handleClick() {
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:3001/api/board/:boardID/ready', {
+      const res = await fetch(`http://localhost:3001/api/board/${boardID}/ready`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: playerID, board_id: boardID }),
+        headers: { 'Content-Type': 'application/json' ,
+          authorization: `Bearer ${localStorage.getItem('token')}`
+        },
       });
       const data = await res.json();
       if (data.success) {
