@@ -200,7 +200,6 @@ app.post('/api/create-game', authenticateToken, async (req, res) => {
     // Keep in mind that for now it does not randomly generate unique ids, and only does a small range 
     // TODO: make the board IDs generate unique ids
     const boardResult = await client.query(
-      `INSERT INTO boards (host_id, status) VALUES ($1, 'active') RETURNING id`,
       [playerID]
     );
     const boardId = boardResult.rows[0].id;
@@ -325,15 +324,15 @@ app.get('/api/board/:boardID/status', authenticateToken, async (req, res) => {
 app.put('/api/board/:boardID/bingo', authenticateToken, async (req, res) => {
   const { boardID } = req.params;
   const playerID = req.user.id;
-  console.log(`Player ${playerID} is attempting to declare BINGO on board ${boardID}`);
+
   try {
-    
-    const squaresCountResult = await pool.query(
+    const client = await pool.connect();
+    const squaresCountResult = await client.query(
       `SELECT COUNT(*) FROM squares WHERE board_id = $1`,
       [boardID]
     );
     const squaresCount = parseInt(squaresCountResult.rows[0].count, 10);
-    const markerCountResult = await pool.query(
+    const markerCountResult = await client.query(
       `SELECT COUNT(*) FROM marker WHERE board_id = $1 AND player_id = $2`,
       [boardID, playerID]
     );
@@ -346,7 +345,7 @@ app.put('/api/board/:boardID/bingo', authenticateToken, async (req, res) => {
       });
     }
     else {
-      const endGameResult = await pool.query(
+      const endGameResult = await client.query(
         `UPDATE boards SET status = 'ended', winner_id = $1, ended_at = NOW() WHERE id = $2 RETURNING id, status, winner_id, ended_at`,
         [playerID, boardID]
       );
@@ -369,20 +368,71 @@ app.put('/api/board/:boardID/bingo', authenticateToken, async (req, res) => {
       message: winnerID ? 'Game ended with a winner' : 'Game ended because time ran out',
       board: endGameResult.rows[0],
     });
+    await client.query('COMMIT');
   }catch (error) {
+    await client.query('ROLLBACK');
     console.error('End game error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to end game',
     });
   }
+  finally {
+    client.release();
+  }
+});
+app.put('/api/board/:boardID/assign-squares', authenticateToken, async (req, res) => {
+  const { boardID } = req.params;
+  try {
+
+  const client = await pool.connect();
+    const playersResult = await client.query(
+    `SELECT user_id FROM players WHERE board_id = $1`,
+    [boardID]
+  );
+  function shuffleArray(array) {
+    return [...array].sort(() => Math.random() - 0.5);
+  } 
+  const squaresResult = await client.query(
+    `SELECT id, index FROM squares WHERE board_id = $1`,
+    [boardID]
+  );
+  const squares = squaresResult.rows;
+  const players = playersResult.rows.map(row => row.user_id);
+  const shuffledSquares = shuffleArray(squares);
+
+  for (let i = 0; i< shuffledSquares.length; i++) {
+    const square = shuffledSquares[i];
+    const playerID = players[i % players.length];
+    await client.query(
+      'UPDATE squares SET player_id = $1 WHERE id = $2',
+      [playerID, square.id]
+    );
+  }
+  await client.query('COMMIT');
+  res.json({
+    success: true,
+    message: 'Squares assigned and game started',
+  });
+}catch(error) {
+  await client.query('ROLLBACK');
+  console.error('Assign squares error:', error);
+  res.status(500).json({
+    success: false,
+    message: 'Failed to assign squares',
+  });
+}
+finally {
+  client.release();
+}
 });
 app.post('/api/board/:boardID/square/:index/toggle-marker', authenticateToken, async (req, res) => {
   const { boardID } = req.params;
   const { index } = req.params; 
   const playerID = req.user.id;
   try{
-  const squareResult = await pool.query(
+    const client = await pool.connect();
+  const squareResult = await client.query(
       "SELECT id FROM squares WHERE board_id = $1 AND index = $2",
       [boardID, index]
     );
@@ -396,14 +446,14 @@ app.post('/api/board/:boardID/square/:index/toggle-marker', authenticateToken, a
 
   const squareID = squareResult.rows[0].id;
 
-  const existingMarker = await pool.query(
+  const existingMarker = await client.query(
       `SELECT id FROM marker
        WHERE player_id = $1 AND square_id = $2 AND board_id = $3`,
       [playerID, squareID, boardID]
     ); 
 
   if (existingMarker.rows.length > 0) {
-    await pool.query(
+    await client.query(
       `DELETE FROM marker WHERE id = $1`,
       [existingMarker.rows[0].id]
     );
@@ -412,7 +462,7 @@ app.post('/api/board/:boardID/square/:index/toggle-marker', authenticateToken, a
       message: "Marker removed",
     });
   } else {
-    await pool.query(
+    await client.query(
       `INSERT INTO marker (player_id, square_id, board_id) VALUES ($1, $2, $3)`,
       [playerID, squareID, boardID]
     );
@@ -422,7 +472,10 @@ app.post('/api/board/:boardID/square/:index/toggle-marker', authenticateToken, a
       marked: true,
     });
   }
+  await client.query('COMMIT');
+  
   } catch (error) { 
+    await client.query('ROLLBACK');
     console.error("Toggle marker error:", error);
 
     res.status(500).json({
@@ -430,6 +483,9 @@ app.post('/api/board/:boardID/square/:index/toggle-marker', authenticateToken, a
       message: "Server error toggling marker",
       marked: false,
     });
+  }
+  finally {
+    client.release();
   }
 });
 
@@ -458,31 +514,12 @@ app.get('/api/board/:boardID/players', async (req, res) => {
 
 app.post('/api/board/:boardID/ready', authenticateToken, async (req, res) => {
     const playerID = req.user.id;
-<<<<<<< HEAD
-<<<<<<< HEAD
-    const {boardID} = req.params;
-    console.log('Received ready toggle request for player:', playerID, 'on board:', boardID);
-  try {
-    const current = await pool.query(
-      `SELECT ready FROM players WHERE user_id = $1 AND board_id = $2`,
-      [playerID, boardID]
-=======
-    const {board_id} = req.params;
-
-  console.log('Checking ready for:', { playerID, board_id });
-  try {
-    const current = await pool.query(
-      `SELECT ready FROM players WHERE user_id = $1 AND board_id = $2`,
-      [playerID, board_id]
->>>>>>> 1e22c04 (feat: changed api route)
-=======
     const {boardID} = req.params;
     console.log('Checking ready for:', { playerID, boardID });
   try {
     const current = await pool.query(
       `SELECT ready FROM players WHERE user_id = $1 AND board_id = $2`,
       [playerID, boardID]
->>>>>>> cb2fed9 (bugfix: fixed issue with readying up (poor naming, incorrect api call))
     );
 
     if (current.rows.length === 0) {
@@ -493,15 +530,7 @@ app.post('/api/board/:boardID/ready', authenticateToken, async (req, res) => {
 
     const result = await pool.query(
       `UPDATE players SET ready = $1 WHERE user_id = $2 AND board_id = $3 RETURNING ready`,
-<<<<<<< HEAD
-<<<<<<< HEAD
       [newReadyState, playerID, boardID]
-=======
-      [newReadyState, playerID, board_id]
->>>>>>> 1e22c04 (feat: changed api route)
-=======
-      [newReadyState, playerID, boardID]
->>>>>>> cb2fed9 (bugfix: fixed issue with readying up (poor naming, incorrect api call))
     );
 
     res.json({ success: true, message: 'Ready status updated', ready: result.rows[0].ready });
@@ -510,6 +539,7 @@ app.post('/api/board/:boardID/ready', authenticateToken, async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to update ready status' });
   }
 });
+
 
 app.listen(PORT, () => {
   console.log(`Backend API running on http://localhost:${PORT}`);
