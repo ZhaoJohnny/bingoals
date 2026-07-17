@@ -65,6 +65,7 @@ function BoardPage() {
   }, [boardID]);
   if (status === 'lobby') {
     return (
+        // TODO: Figure out how to add playerID such that it can be passed in
       <LobbyPhase boardID={boardID} onToggle={handleReadyClick} />
     );
   }

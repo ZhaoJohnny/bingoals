@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import '../styles/StartButtonButton.css';
 
-function StartButton({playerID, boardID}) {
+function StartButton({boardID}) {
     const [loading, setLoading] = useState(false);
     async function handleClick() {
     setLoading(true);
