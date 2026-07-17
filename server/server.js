@@ -568,6 +568,7 @@ app.post('/api/board/:boardID/ready', authenticateToken, async (req, res) => {
   }
 });
 
+
 app.listen(PORT, () => {
   console.log(`Backend API running on http://localhost:${PORT}`);
 });
