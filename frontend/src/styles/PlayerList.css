@@ -1,0 +1,56 @@
+/* styles/PlayerList.css */
+
+.players-list {
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  padding: 32px 48px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  width: 480px;
+  max-width: 90vw;
+  min-height: 320px;
+}
+
+.players-list h3 {
+  margin: 0 0 16px 0;
+  font-size: 20px;
+  text-transform: uppercase;
+  color: #555;
+  text-align: center;
+}
+
+.players-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.players-list li {
+  padding: 8px 0;
+  font-size: 18px;
+  text-align: center;
+  border-bottom: 1px solid #eee;
+}
+
+.players-list li:last-child {
+  border-bottom: none;
+}
+
+.players-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 18px;
+  border-bottom: 1px solid #eee;
+}
+
+.ready-mark {
+  color: #2e7d32;
+  font-weight: bold;
+}
+
+.not-ready-mark {
+  color: #c62828;
+  font-weight: bold;
+}

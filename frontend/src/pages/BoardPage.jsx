@@ -1,12 +1,16 @@
 // pages/BoardPage.jsx
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
+import LobbyPhase from "../components/phases/LobbyPhase";
 import BingoBoard from "../components/BingoBoard";
 import BingoButton from "../components/BingoButton";
 
 function BoardPage() {
   const { boardID } = useParams();
   const [status, setStatus] = useState('');
+  function handleReadyClick() {
+    setBoardState(boardState === 'addingGoals' ? 'playing' : 'addingGoals');
+  }
   async function loadBoardStatus() {
       try {
         const res = await fetch(`http://localhost:3001/api/board/${boardID}/status`, {

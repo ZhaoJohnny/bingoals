@@ -79,6 +79,10 @@ app.post("/api/register", async (req, res) => {
        RETURNING id, name, email, created_at`,
       [name, email, passwordHash]
     );
+    const user = await pool.query(
+      "SELECT id, name, email, password FROM users WHERE email = $1",
+      [email]
+    );
     const token = jwt.sign(
       { id: user.rows[0].id, email: user.rows[0].email },
       process.env.JWT_SECRET,
@@ -175,6 +179,8 @@ app.post('/api/bingo-square', authenticateToken, async (req, res) => {
 app.post('/api/create-game', authenticateToken, async (req, res) => {
   const { title } = req.body;
   const playerID = req.user.id;
+  const name = req.user.name;
+
   if (!playerID) {
     return res.status(400).json({ success: false, message: 'playerID is required' });
   }
@@ -212,8 +218,14 @@ app.post('/api/create-game', authenticateToken, async (req, res) => {
 
     // Register the creator as a player on this board
     await client.query(
-      `INSERT INTO players (user_id, board_id) VALUES ($1, $2)`,
+      `INSERT INTO players (user_id, board_id, ready) VALUES ($1, $2, false)`,
       [playerID, boardId]
+    );
+
+    // Assign this board as the user's current board
+    await client.query(
+      `UPDATE users SET board_id = $1 WHERE id = $2`,
+      [boardId, playerID]
     );
 
     await client.query('COMMIT');
@@ -417,6 +429,29 @@ app.post('/api/board/:boardID/square/:index/toggle-marker', authenticateToken, a
       message: "Server error toggling marker",
       marked: false,
     });
+  }
+});
+
+app.get('/api/board/:boardID/players', async (req, res) => {
+  const { boardID } = req.params;
+
+  try {
+    const result = await pool.query(
+      `SELECT name, ready
+       FROM players 
+       JOIN users
+       ON players.user_id = users.id
+       WHERE players.board_id = $1`,
+      [boardID]
+    );
+
+    res.json({
+      success: true,
+      players: result.rows.map(r => ({ id: r.id, name: r.name, ready: r.ready })),
+    });
+  } catch (error) {
+    console.error('Error fetching players', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch players' });
   }
 });
 
