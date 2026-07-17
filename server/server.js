@@ -325,7 +325,6 @@ app.get('/api/board/:boardID/status', authenticateToken, async (req, res) => {
 app.put('/api/board/:boardID/bingo', authenticateToken, async (req, res) => {
   const { boardID } = req.params;
   const playerID = req.user.id;
-
   try {
     const client = await pool.connect();
     const squaresCountResult = await client.query(
@@ -410,6 +409,10 @@ app.put('/api/board/:boardID/assign-squares', authenticateToken, async (req, res
       [playerID, square.id]
     );
   }
+  await client.query(
+    `UPDATE boards SET status = 'playing' WHERE id = $1`,
+    [boardID]
+  );
   await client.query('COMMIT');
   res.json({
     success: true,
