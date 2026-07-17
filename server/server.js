@@ -153,6 +153,7 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
+
 app.post('/api/bingo-square', authenticateToken, async (req, res) => {
   const { boardID, index, content } = req.body;
 
@@ -510,6 +511,35 @@ app.get('/api/board/:boardID/players', async (req, res) => {
   } catch (error) {
     console.error('Error fetching players', error);
     res.status(500).json({ success: false, message: 'Failed to fetch players' });
+  }
+});
+
+app.post('/api/board/:boardID/ready', authenticateToken, async (req, res) => {
+    const playerID = req.user.id;
+    const {board_id} = req.params;
+
+  console.log('Checking ready for:', { playerID, board_id });
+  try {
+    const current = await pool.query(
+      `SELECT ready FROM players WHERE user_id = $1 AND board_id = $2`,
+      [playerID, board_id]
+    );
+
+    if (current.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Player not found on this board' });
+    }
+
+    const newReadyState = !current.rows[0].ready;
+
+    const result = await pool.query(
+      `UPDATE players SET ready = $1 WHERE user_id = $2 AND board_id = $3 RETURNING ready`,
+      [newReadyState, playerID, board_id]
+    );
+
+    res.json({ success: true, message: 'Ready status updated', ready: result.rows[0].ready });
+  } catch (error) {
+    console.error('Error with ready button', error);
+    res.status(500).json({ success: false, message: 'Failed to update ready status' });
   }
 });
 
