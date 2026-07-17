@@ -206,6 +206,8 @@ app.get('/api/board/:boardID', authenticateToken, async (req, res) => {
 app.post('/api/create-game', authenticateToken, async (req, res) => {
   const { title } = req.body;
   const playerID = req.user.id;
+  const name = req.user.name;
+
   if (!playerID) {
     return res.status(400).json({ success: false, message: 'playerID is required' });
   }
@@ -243,8 +245,14 @@ app.post('/api/create-game', authenticateToken, async (req, res) => {
 
     // Register the creator as a player on this board
     await client.query(
-      `INSERT INTO players (user_id, board_id) VALUES ($1, $2)`,
+      `INSERT INTO players (user_id, board_id, ready) VALUES ($1, $2, false)`,
       [playerID, boardId]
+    );
+
+    // Assign this board as the user's current board
+    await client.query(
+      `UPDATE users SET board_id = $1 WHERE id = $2`,
+      [boardId, playerID]
     );
 
     await client.query('COMMIT');
@@ -319,15 +327,17 @@ app.get('/api/board/:boardID/players', async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT name
-       FROM users
-       WHERE board_id = $1`,
+      `SELECT name, ready
+       FROM players 
+       JOIN users
+       ON players.user_id = users.id
+       WHERE players.board_id = $1`,
       [boardID]
     );
 
     res.json({
       success: true,
-      players: result.rows.map(r => r.name),
+      players: result.rows.map(r => ({ id: r.id, name: r.name, ready: r.ready })),
     });
   } catch (error) {
     console.error('Error fetching players', error);
