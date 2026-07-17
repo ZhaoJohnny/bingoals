@@ -1,0 +1,22 @@
+/* styles/StartButton.css */
+
+.start-button {
+  padding: 12px 32px;
+  font-size: 16px;
+  font-weight: 600;
+  color: white;
+  background-color: #2e7d32;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.start-button:hover:not(:disabled) {
+  background-color: #256428;
+}
+
+.start-button:disabled {
+  background-color: #a5a5a5;
+  cursor: not-allowed;
+}
