@@ -9,7 +9,7 @@ function BoardPage() {
   const { boardID } = useParams();
   const [status, setStatus] = useState('');
   function handleReadyClick() {
-    setStatus('creation');
+    //TODO: make handle ready click only change the status of ready
   }
   async function loadBoardStatus() {
       try {
