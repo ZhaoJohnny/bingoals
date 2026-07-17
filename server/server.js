@@ -153,7 +153,6 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-
 app.post('/api/bingo-square', authenticateToken, async (req, res) => {
   const { boardID, index, content } = req.body;
 
