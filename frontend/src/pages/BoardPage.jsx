@@ -19,7 +19,7 @@ function BoardPage() {
   return (
     <div>
       {boardState === 'addingGoals' && (
-        <LobbyPhase boardID={boardID} boardState={boardState} onToggle={handleReadyClick} />
+        <LobbyPhase boardID={boardID} playerID={playerID} onToggle={handleReadyClick} />
       )}
       {boardState === 'playing' && (
         <BingoBoard title="BOARD NAME" boardID={boardID} playerID={playerID} boardState={boardState} />
