@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import '../styles/StartButtonButton.css';
+import '../styles/StartButton.css';
 
 function StartButton({boardID}) {
     const [loading, setLoading] = useState(false);
