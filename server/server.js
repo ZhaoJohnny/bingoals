@@ -152,6 +152,8 @@ app.post("/api/login", async (req, res) => {
     });
   }
 });
+
+
 app.post('/api/bingo-square', authenticateToken, async (req, res) => {
   const { boardID, index, content } = req.body;
 
@@ -199,7 +201,7 @@ app.post('/api/create-game', authenticateToken, async (req, res) => {
     // Keep in mind that for now it does not randomly generate unique ids, and only does a small range 
     // TODO: make the board IDs generate unique ids
     const boardResult = await client.query(
-      `INSERT INTO boards (host_id, status) VALUES ($1, 'active') RETURNING id`,
+      `INSERT INTO boards (host_id, status) VALUES ($1, 'lobby') RETURNING id`,
       [playerID]
     );
     const boardId = boardResult.rows[0].id;
@@ -437,7 +439,7 @@ app.get('/api/board/:boardID/players', async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT name, ready
+      `SELECT users.id, name, ready
        FROM players 
        JOIN users
        ON players.user_id = users.id
@@ -454,6 +456,35 @@ app.get('/api/board/:boardID/players', async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to fetch players' });
   }
 });
+
+app.post('/api/board/:boardID/ready', authenticateToken, async (req, res) => {
+    const playerID = req.user.id;
+    const {boardID} = req.params;
+    console.log('Checking ready for:', { playerID, boardID });
+  try {
+    const current = await pool.query(
+      `SELECT ready FROM players WHERE user_id = $1 AND board_id = $2`,
+      [playerID, boardID]
+    );
+
+    if (current.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Player not found on this board' });
+    }
+
+    const newReadyState = !current.rows[0].ready;
+
+    const result = await pool.query(
+      `UPDATE players SET ready = $1 WHERE user_id = $2 AND board_id = $3 RETURNING ready`,
+      [newReadyState, playerID, boardID]
+    );
+
+    res.json({ success: true, message: 'Ready status updated', ready: result.rows[0].ready });
+  } catch (error) {
+    console.error('Error with ready button', error);
+    res.status(500).json({ success: false, message: 'Failed to update ready status' });
+  }
+});
+
 
 app.listen(PORT, () => {
   console.log(`Backend API running on http://localhost:${PORT}`);

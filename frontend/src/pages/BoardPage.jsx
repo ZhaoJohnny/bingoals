@@ -9,7 +9,7 @@ function BoardPage() {
   const { boardID } = useParams();
   const [status, setStatus] = useState('');
   function handleReadyClick() {
-    setBoardState(boardState === 'addingGoals' ? 'playing' : 'addingGoals');
+    setStatus('creation');
   }
   async function loadBoardStatus() {
       try {
@@ -65,7 +65,7 @@ function BoardPage() {
   }, [boardID]);
   if (status === 'lobby') {
     return (
-      <LobbyPhase boardID={boardID} />
+      <LobbyPhase boardID={boardID} onToggle={handleReadyClick} />
     );
   }
   if (status === 'creation') {
