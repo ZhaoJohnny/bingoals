@@ -17,7 +17,11 @@ function PlayerList({ boardID }) {
         setLoading(false);
       }
     }
-    loadPlayers();
+
+    loadPlayers(); // initial fetch
+    const interval = setInterval(loadPlayers, 300); // then poll every 2 seconds
+
+    return () => clearInterval(interval); // stop polling on unmount
   }, [boardID]);
 
   if (loading) return <div className="players-list">Loading players…</div>;
