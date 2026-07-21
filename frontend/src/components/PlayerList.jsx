@@ -17,7 +17,14 @@ function PlayerList({ boardID }) {
         setLoading(false);
       }
     }
-    loadPlayers();
+
+    loadPlayers(); // initial fetch
+    // TODO: right now the playerList is refreshed by querying the server every 300ms. This
+    // definitely seems like a brute force way to accomplish what is a simple player list, and could
+    // definitely be refactored to be more efficient later
+    const interval = setInterval(loadPlayers, 300); // then poll every 300ms
+
+    return () => clearInterval(interval); // stop polling on unmount
   }, [boardID]);
 
   if (loading) return <div className="players-list">Loading players…</div>;
