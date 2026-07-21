@@ -511,7 +511,6 @@ app.post('/api/board/:boardID/start', authenticateToken, async(req, res) => {
 
         return res.json({success: true, message: "Game will start"});
         await pool.query(`UPDATE boards SET status = 'creation' WHERE id = $1`, [boardID]);
-
         } else {
             return res.json({ success: false, message: 'Player is not the host' });
         }

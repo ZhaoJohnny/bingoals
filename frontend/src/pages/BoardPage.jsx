@@ -8,9 +8,14 @@ import BingoButton from "../components/BingoButton";
 function BoardPage() {
   const { boardID } = useParams();
   const [status, setStatus] = useState('');
-  function handleReadyClick() {
-    //TODO: make handle ready click only change the status of ready
+  function onStart() {
+    setStatus('creation')
   }
+
+  function handleReadyToggle() {
+    loadBoardStatus();
+  }
+
   async function loadBoardStatus() {
       try {
         const res = await fetch(`http://localhost:3001/api/board/${boardID}/status`, {
@@ -63,10 +68,11 @@ function BoardPage() {
   useEffect(() => {
   loadBoardStatus();
   }, [boardID]);
+
+
   if (status === 'lobby') {
     return (
-        // TODO: Figure out how to add playerID such that it can be passed in
-      <LobbyPhase boardID={boardID} onToggle={handleReadyClick} />
+      <LobbyPhase boardID={boardID} onToggle={handleReadyToggle} onStart={onStart} />
     );
   }
   if (status === 'creation') {

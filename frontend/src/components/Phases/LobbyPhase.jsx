@@ -3,7 +3,7 @@ import ReadyButton from "../ReadyButton";
 import "../../styles/LobbyPhase.css";
 import StartButton from "../StartButton";
 
-function LobbyPhase({ boardID, onToggle }) {
+function LobbyPhase({ boardID, onToggle, onStart }) {
   return (
     <div className="lobby-phase">
       <div className="lobby-center">
@@ -13,7 +13,7 @@ function LobbyPhase({ boardID, onToggle }) {
         <ReadyButton boardID={boardID} onToggle={onToggle} />
       </div>
       <div className="lobby-bottom">
-        <StartButton boardID={boardID} />
+        <StartButton boardID={boardID} onStart={onStart}/>
       </div>
     </div>
   );
