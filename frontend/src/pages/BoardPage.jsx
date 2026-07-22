@@ -44,6 +44,7 @@ function BoardPage() {
 
         if (data.success) {
           setStatus(data.status);
+          console.log('Board status:', data.status);
         }
       } catch (err) {
         console.error('Failed to get board status', err);
@@ -83,7 +84,7 @@ function BoardPage() {
   }
   useEffect(() => {
   loadBoardStatus();
-  }, [boardID]);
+  }, [boardID, status]);
 
 
   if (status === 'lobby') {
