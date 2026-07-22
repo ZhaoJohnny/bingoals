@@ -520,31 +520,12 @@ app.get('/api/board/:boardID/players', async (req, res) => {
 
 app.post('/api/board/:boardID/ready', authenticateToken, async (req, res) => {
     const playerID = req.user.id;
-<<<<<<< HEAD
-<<<<<<< HEAD
     const {boardID} = req.params;
     console.log('Checking ready for:', { playerID, boardID });
   try {
     const current = await pool.query(
       `SELECT ready FROM players WHERE user_id = $1 AND board_id = $2`,
       [playerID, boardID]
-=======
-    const {board_id} = req.params;
-
-  console.log('Checking ready for:', { playerID, board_id });
-  try {
-    const current = await pool.query(
-      `SELECT ready FROM players WHERE user_id = $1 AND board_id = $2`,
-      [playerID, board_id]
->>>>>>> 1e22c04 (feat: changed api route)
-=======
-    const {boardID} = req.params;
-    console.log('Checking ready for:', { playerID, boardID });
-  try {
-    const current = await pool.query(
-      `SELECT ready FROM players WHERE user_id = $1 AND board_id = $2`,
-      [playerID, boardID]
->>>>>>> cb2fed9 (bugfix: fixed issue with readying up (poor naming, incorrect api call))
     );
 
     if (current.rows.length === 0) {
@@ -555,15 +536,7 @@ app.post('/api/board/:boardID/ready', authenticateToken, async (req, res) => {
 
     const result = await pool.query(
       `UPDATE players SET ready = $1 WHERE user_id = $2 AND board_id = $3 RETURNING ready`,
-<<<<<<< HEAD
-<<<<<<< HEAD
       [newReadyState, playerID, boardID]
-=======
-      [newReadyState, playerID, board_id]
->>>>>>> 1e22c04 (feat: changed api route)
-=======
-      [newReadyState, playerID, boardID]
->>>>>>> cb2fed9 (bugfix: fixed issue with readying up (poor naming, incorrect api call))
     );
 
     res.json({ success: true, message: 'Ready status updated', ready: result.rows[0].ready });

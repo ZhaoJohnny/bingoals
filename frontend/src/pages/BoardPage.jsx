@@ -8,8 +8,24 @@ import BingoButton from "../components/BingoButton";
 function BoardPage() {
   const { boardID } = useParams();
   const [status, setStatus] = useState('');
-  function onStart() {
-    setStatus('creation')
+  async function onStart() {
+    try {
+      const res = await fetch(`http://localhost:3001/api/board/${boardID}/start`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setStatus('creation');
+      } else {
+        console.error('Failed to start', data.message);
+      }
+    } catch (error) {
+      console.error('Error starting game', error);
+    }
   }
 
   function handleReadyToggle() {
