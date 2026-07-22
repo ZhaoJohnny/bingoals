@@ -386,48 +386,7 @@ app.put('/api/board/:boardID/bingo', authenticateToken, async (req, res) => {
 });
 app.put('/api/board/:boardID/assign-squares', authenticateToken, async (req, res) => {
   const { boardID } = req.params;
-  try {
-
-  const client = await pool.connect();
-    const playersResult = await client.query(
-    `SELECT user_id FROM players WHERE board_id = $1`,
-    [boardID]
-  );
-  function shuffleArray(array) {
-    return [...array].sort(() => Math.random() - 0.5);
-  } 
-  const squaresResult = await client.query(
-    `SELECT id, index FROM squares WHERE board_id = $1`,
-    [boardID]
-  );
-  const squares = squaresResult.rows;
-  const players = playersResult.rows.map(row => row.user_id);
-  const shuffledSquares = shuffleArray(squares);
-
-  for (let i = 0; i< shuffledSquares.length; i++) {
-    const square = shuffledSquares[i];
-    const playerID = players[i % players.length];
-    await client.query(
-      'UPDATE squares SET player_id = $1 WHERE id = $2',
-      [playerID, square.id]
-    );
-  }
-  await client.query('COMMIT');
-  res.json({
-    success: true,
-    message: 'Squares assigned and game started',
-  });
-}catch(error) {
-  await client.query('ROLLBACK');
-  console.error('Assign squares error:', error);
-  res.status(500).json({
-    success: false,
-    message: 'Failed to assign squares',
-  });
-}
-finally {
-  client.release();
-}
+  
 });
 app.post('/api/board/:boardID/square/:index/toggle-marker', authenticateToken, async (req, res) => {
   const { boardID } = req.params;
@@ -546,7 +505,38 @@ app.post('/api/board/:boardID/ready', authenticateToken, async (req, res) => {
 app.post('/api/board/:boardID/start', authenticateToken, async(req, res) => {
     const playerID = req.user.id;
     const {boardID} = req.params;
+
+
     try{
+      const client = await pool.connect();
+    const playersResult = await client.query(
+    `SELECT user_id FROM players WHERE board_id = $1`,
+    [boardID]
+  );
+  function shuffleArray(array) {
+    return [...array].sort(() => Math.random() - 0.5);
+  } 
+  const squaresResult = await client.query(
+    `SELECT id, index FROM squares WHERE board_id = $1`,
+    [boardID]
+  );
+  const squares = squaresResult.rows;
+  const players = playersResult.rows.map(row => row.user_id);
+  const shuffledSquares = shuffleArray(squares);
+
+  for (let i = 0; i< shuffledSquares.length; i++) {
+    const square = shuffledSquares[i];
+    const playerID = players[i % players.length];
+    await client.query(
+      'UPDATE squares SET player_id = $1 WHERE id = $2',
+      [playerID, square.id]
+    );
+  }
+  await client.query('COMMIT');
+  res.json({
+    success: true,
+    message: 'Squares assigned and game started',
+  });
         const host = await pool.query(
             'SELECT host_id FROM boards WHERE id = $1',
             [boardID]
@@ -566,7 +556,7 @@ app.post('/api/board/:boardID/start', authenticateToken, async(req, res) => {
         if (someoneNotReady) {
             return res.json({ success: false, message: 'Not all players are ready' });
         }
-        console.log('success');
+
         await pool.query(`UPDATE boards SET status = 'creation' WHERE id = $1`, [boardID]);
         return res.json({success: true, message: "Game will start"});
 
@@ -576,9 +566,13 @@ app.post('/api/board/:boardID/start', authenticateToken, async(req, res) => {
         }
         
     } catch(error) {
+        await client.query('ROLLBACK');
         console.error('Error with the start button', error);
         res.status(500).json({ success: false, message: 'Failed to start game' });
     }
+    finally {
+  client.release();
+}
 });
 
 

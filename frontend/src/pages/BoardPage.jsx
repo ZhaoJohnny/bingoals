@@ -17,8 +17,6 @@ function BoardPage() {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
       });
-      const data = await res.json();
-      console.log('Start game', data);
       setStatus('creation');
     } catch (error) {
       console.error('Error starting game', error);
@@ -51,7 +49,6 @@ function BoardPage() {
 
         if (data.success) {
           setStatus(data.status);
-          console.log('Board status:', data.status);
         }
       } catch (err) {
         console.error('Failed to get board status', err);
