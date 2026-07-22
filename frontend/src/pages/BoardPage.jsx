@@ -17,19 +17,31 @@ function BoardPage() {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
       });
-      const data = await res.json();
-      if (data.success) {
-        setStatus('creation');
-      } else {
-        console.error('Failed to start', data.message);
-      }
     } catch (error) {
       console.error('Error starting game', error);
     }
   }
 
   function handleReadyToggle() {
-    loadBoardStatus();
+    try {
+      const res = await fetch(`http://localhost:3001/api/board/${boardID}/ready`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+         },
+        body: JSON.stringify({ user_id: playerID, board_id: boardID }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setReady(data.ready);
+        if (onToggle) onToggle(data.ready);
+      } else {
+        console.error('Failed to update ready status', data.message);
+      }
+    } catch (error) {
+      console.error('Error toggling ready', error);
+    } 
   }
 
   async function loadBoardStatus() {
@@ -84,7 +96,7 @@ function BoardPage() {
   }
   useEffect(() => {
   loadBoardStatus();
-  }, [boardID, status]);
+  }, [boardID]);
 
 
   if (status === 'lobby') {
