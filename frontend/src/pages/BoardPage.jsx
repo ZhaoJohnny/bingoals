@@ -22,7 +22,7 @@ function BoardPage() {
     }
   }
 
-  function handleReadyToggle() {
+  async function handleReadyToggle() {
     try {
       const res = await fetch(`http://localhost:3001/api/board/${boardID}/ready`, {
         method: 'POST',
