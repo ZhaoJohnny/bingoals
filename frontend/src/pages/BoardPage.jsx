@@ -17,6 +17,9 @@ function BoardPage() {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
       });
+      const data = await res.json();
+      console.log('Start game', data);
+      setStatus('creation');
     } catch (error) {
       console.error('Error starting game', error);
     }
@@ -30,15 +33,7 @@ function BoardPage() {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
          },
-        body: JSON.stringify({ user_id: playerID, board_id: boardID }),
       });
-      const data = await res.json();
-      if (data.success) {
-        setReady(data.ready);
-        if (onToggle) onToggle(data.ready);
-      } else {
-        console.error('Failed to update ready status', data.message);
-      }
     } catch (error) {
       console.error('Error toggling ready', error);
     } 
@@ -96,7 +91,7 @@ function BoardPage() {
   }
   useEffect(() => {
   loadBoardStatus();
-  }, [boardID]);
+  }, [boardID, status]);
 
 
   if (status === 'lobby') {

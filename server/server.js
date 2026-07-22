@@ -566,9 +566,11 @@ app.post('/api/board/:boardID/start', authenticateToken, async(req, res) => {
         if (someoneNotReady) {
             return res.json({ success: false, message: 'Not all players are ready' });
         }
-
-        return res.json({success: true, message: "Game will start"});
+        console.log('success');
         await pool.query(`UPDATE boards SET status = 'creation' WHERE id = $1`, [boardID]);
+        return res.json({success: true, message: "Game will start"});
+
+        
         } else {
             return res.json({ success: false, message: 'Player is not the host' });
         }

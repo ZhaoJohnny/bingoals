@@ -5,7 +5,7 @@ function ReadyButton({ boardID, onToggle }) {
   const [ready, setReady] = useState(false);
 
   return (
-    <button className="ready-button" onClick={onToggle} disabled={loading}>
+    <button className="ready-button" onClick={onToggle}>
       {ready ? 'Ready ✓ (click to undo)' : 'Ready Up'}
     </button>
   );
