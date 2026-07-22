@@ -327,9 +327,9 @@ app.get('/api/board/:boardID/status', authenticateToken, async (req, res) => {
 app.put('/api/board/:boardID/bingo', authenticateToken, async (req, res) => {
   const { boardID } = req.params;
   const playerID = req.user.id;
-  
+    let client;
   try {
-    const client = await pool.connect();
+    client = await pool.connect();
     const squaresCountResult = await client.query(
       `SELECT COUNT(*) FROM squares WHERE board_id = $1`,
       [boardID]
@@ -392,8 +392,9 @@ app.post('/api/board/:boardID/square/:index/toggle-marker', authenticateToken, a
   const { boardID } = req.params;
   const { index } = req.params; 
   const playerID = req.user.id;
+  let client;
   try{
-    const client = await pool.connect();
+    client = await pool.connect();
   const squareResult = await client.query(
       "SELECT id FROM squares WHERE board_id = $1 AND index = $2",
       [boardID, index]
@@ -506,16 +507,17 @@ app.post('/api/board/:boardID/start', authenticateToken, async(req, res) => {
     const playerID = req.user.id;
     const {boardID} = req.params;
 
-
+  let client;
+  function shuffleArray(array) {
+    return [...array].sort(() => Math.random() - 0.5);
+  } 
     try{
-      const client = await pool.connect();
+    client = await pool.connect();
     const playersResult = await client.query(
     `SELECT user_id FROM players WHERE board_id = $1`,
     [boardID]
   );
-  function shuffleArray(array) {
-    return [...array].sort(() => Math.random() - 0.5);
-  } 
+  
   const squaresResult = await client.query(
     `SELECT id, index FROM squares WHERE board_id = $1`,
     [boardID]
@@ -532,12 +534,9 @@ app.post('/api/board/:boardID/start', authenticateToken, async(req, res) => {
       [playerID, square.id]
     );
   }
-  await client.query('COMMIT');
-  res.json({
-    success: true,
-    message: 'Squares assigned and game started',
-  });
-        const host = await pool.query(
+  
+
+        const host = await client.query(
             'SELECT host_id FROM boards WHERE id = $1',
             [boardID]
         );
@@ -547,31 +546,31 @@ app.post('/api/board/:boardID/start', authenticateToken, async(req, res) => {
         }
 
         if(playerID === host.rows[0].host_id) {
-            const players = await pool.query(
+            const players = await client.query(
                 'SELECT ready FROM players WHERE board_id = $1',
                 [boardID]
-            )
-        const someoneNotReady = players.rows.some(p => p.ready === false);
+            );
+            const someoneNotReady = players.rows.some(p => p.ready === false);
 
         if (someoneNotReady) {
             return res.json({ success: false, message: 'Not all players are ready' });
         }
 
-        await pool.query(`UPDATE boards SET status = 'creation' WHERE id = $1`, [boardID]);
-        return res.json({success: true, message: "Game will start"});
-
+        
+      
         
         } else {
             return res.json({ success: false, message: 'Player is not the host' });
         }
-        
+        await client.query(`UPDATE boards SET status = 'creation' WHERE id = $1`, [boardID]);
+        await client.query('COMMIT');
+        return res.json({success: true, message: "Game will start"});
     } catch(error) {
         await client.query('ROLLBACK');
         console.error('Error with the start button', error);
         res.status(500).json({ success: false, message: 'Failed to start game' });
-    }
-    finally {
-  client.release();
+    } finally {
+       client.release();
 }
 });
 
