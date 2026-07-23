@@ -572,18 +572,14 @@ app.post('/api/board/:boardID/start', authenticateToken, async(req, res) => {
             const someoneNotReady = players.rows.some(p => p.ready === false);
 
         if (someoneNotReady) {
-            return res.json({ success: false, message: 'Not all players are ready' });
+            return res.status(400).json({ success: false, message: 'Not all players are ready' });
         }
-
-        
-      
-        
         } else {
-            return res.json({ success: false, message: 'Player is not the host' });
+            return res.status(403).json({ success: false, message: 'Player is not the host' });
         }
         await client.query(`UPDATE boards SET status = 'creation' WHERE id = $1`, [boardID]);
         await client.query('COMMIT');
-        return res.json({success: true, message: "Game will start"});
+        return res.json({success: true, message: "Game will start", status: 'creation'});
     } catch(error) {
         await client.query('ROLLBACK');
         console.error('Error with the start button', error);
