@@ -353,7 +353,6 @@ app.put('/api/board/:boardID/bingo', authenticateToken, async (req, res) => {
     );
     const squaresCount = parseInt(squaresCountResult.rows[0].count, 10);
     const markerCountResult = await client.query(
-    const markerCountResult = await client.query(
       `SELECT COUNT(*) FROM marker WHERE board_id = $1 AND player_id = $2`,
       [boardID, playerID]
     );
@@ -366,7 +365,6 @@ app.put('/api/board/:boardID/bingo', authenticateToken, async (req, res) => {
       });
     }
     else {
-      const endGameResult = await client.query(
       const endGameResult = await client.query(
         `UPDATE boards SET status = 'ended', winner_id = $1, ended_at = NOW() WHERE id = $2 RETURNING id, status, winner_id, ended_at`,
         [playerID, boardID]
@@ -391,9 +389,7 @@ app.put('/api/board/:boardID/bingo', authenticateToken, async (req, res) => {
       board: endGameResult.rows[0],
     });
     await client.query('COMMIT');
-    await client.query('COMMIT');
   }catch (error) {
-    await client.query('ROLLBACK');
     await client.query('ROLLBACK');
     console.error('End game error:', error);
     res.status(500).json({
@@ -431,14 +427,12 @@ app.post('/api/board/:boardID/square/:index/toggle-marker', authenticateToken, a
   const squareID = squareResult.rows[0].id;
 
   const existingMarker = await client.query(
-  const existingMarker = await client.query(
       `SELECT id FROM marker
        WHERE player_id = $1 AND square_id = $2 AND board_id = $3`,
       [playerID, squareID, boardID]
     ); 
 
   if (existingMarker.rows.length > 0) {
-    await client.query(
     await client.query(
       `DELETE FROM marker WHERE id = $1`,
       [existingMarker.rows[0].id]
@@ -448,7 +442,7 @@ app.post('/api/board/:boardID/square/:index/toggle-marker', authenticateToken, a
       message: "Marker removed",
     });
   } else {
-    await client.query(
+
     await client.query(
       `INSERT INTO marker (player_id, square_id, board_id) VALUES ($1, $2, $3)`,
       [playerID, squareID, boardID]
@@ -460,11 +454,9 @@ app.post('/api/board/:boardID/square/:index/toggle-marker', authenticateToken, a
     });
   }
   await client.query('COMMIT');
-  
-  await client.query('COMMIT');
+
   
   } catch (error) { 
-    await client.query('ROLLBACK');
     await client.query('ROLLBACK');
     console.error("Toggle marker error:", error);
 
@@ -473,9 +465,6 @@ app.post('/api/board/:boardID/square/:index/toggle-marker', authenticateToken, a
       message: "Server error toggling marker",
       marked: false,
     });
-  }
-  finally {
-    client.release();
   }
   finally {
     client.release();
