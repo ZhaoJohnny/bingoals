@@ -38,7 +38,6 @@ function BingoBoard({ title, boardID, status }) {
     }
 
     loadEverything();
-    console.log('BingoBoard status:', status);
   }, [boardID, status]);
   async function handleToggleMarker(index) {
     try {

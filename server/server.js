@@ -153,16 +153,26 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-
-app.post('/api/bingo-square', authenticateToken, async (req, res) => {
-  const { boardID, index, content } = req.body;
-
-  if (boardID === undefined || index === undefined) {
-    return res.status(400).json({ success: false, message: 'boardID and index are required' });
-  }
-
+app.post('/api/board/:boardID/square/:index/bingo-square', authenticateToken, async (req, res) => {
+  const {content } = req.body;
+  const playerID = req.user.id;
+  const boardID = req.params.boardID;
+  const index = req.params.index;
+  let client;
   try {
-    const result = await pool.query(
+    client = await pool.connect();
+    const squarePlayerResult = await client.query(
+      `SELECT player_id FROM squares WHERE index = $1 AND board_id = $2`,
+      [index, boardID]
+    );
+    if (squarePlayerResult.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Square not assigned to player' });
+    }
+    const squarePlayerID = squarePlayerResult.rows[0].player_id;
+    if (squarePlayerID !== playerID) {
+      return res.status(403).json({ success: false, message: 'You are not the assigned player for this square' });
+    }
+    const result = await client.query(
       `UPDATE squares SET goal = $1 WHERE board_id = $2 AND index = $3 RETURNING id, goal`,
       [content, boardID, index]
     );
@@ -171,10 +181,16 @@ app.post('/api/bingo-square', authenticateToken, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Square not found for that board/index' });
     }
 
+    
     res.json({ success: true, message: 'Bingo square saved', square: result.rows[0] });
+    client.query('COMMIT');
   } catch (error) {
+    client.query('ROLLBACK');
     console.error('Error saving bingo square:', error);
     res.status(500).json({ success: false, message: 'Failed to save bingo square' });
+  }
+  finally {
+    client.release();
   }
 });
 
@@ -310,6 +326,7 @@ app.get('/api/board/:boardID/status', authenticateToken, async (req, res) => {
   const { boardID } = req.params;
   const playerID = req.user.id;
   try {
+    
   const result = await pool.query(
     `SELECT status FROM boards WHERE id = $1`,
     [boardID]
@@ -327,15 +344,15 @@ app.get('/api/board/:boardID/status', authenticateToken, async (req, res) => {
 app.put('/api/board/:boardID/bingo', authenticateToken, async (req, res) => {
   const { boardID } = req.params;
   const playerID = req.user.id;
-  console.log(`Player ${playerID} is attempting to declare BINGO on board ${boardID}`);
+    let client;
   try {
-    
-    const squaresCountResult = await pool.query(
+    client = await pool.connect();
+    const squaresCountResult = await client.query(
       `SELECT COUNT(*) FROM squares WHERE board_id = $1`,
       [boardID]
     );
     const squaresCount = parseInt(squaresCountResult.rows[0].count, 10);
-    const markerCountResult = await pool.query(
+    const markerCountResult = await client.query(
       `SELECT COUNT(*) FROM marker WHERE board_id = $1 AND player_id = $2`,
       [boardID, playerID]
     );
@@ -348,7 +365,7 @@ app.put('/api/board/:boardID/bingo', authenticateToken, async (req, res) => {
       });
     }
     else {
-      const endGameResult = await pool.query(
+      const endGameResult = await client.query(
         `UPDATE boards SET status = 'ended', winner_id = $1, ended_at = NOW() WHERE id = $2 RETURNING id, status, winner_id, ended_at`,
         [playerID, boardID]
       );
@@ -371,20 +388,31 @@ app.put('/api/board/:boardID/bingo', authenticateToken, async (req, res) => {
       message: winnerID ? 'Game ended with a winner' : 'Game ended because time ran out',
       board: endGameResult.rows[0],
     });
+    await client.query('COMMIT');
   }catch (error) {
+    await client.query('ROLLBACK');
     console.error('End game error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to end game',
     });
   }
+  finally {
+    client.release();
+  }
+});
+app.put('/api/board/:boardID/assign-squares', authenticateToken, async (req, res) => {
+  const { boardID } = req.params;
+  
 });
 app.post('/api/board/:boardID/square/:index/toggle-marker', authenticateToken, async (req, res) => {
   const { boardID } = req.params;
   const { index } = req.params; 
   const playerID = req.user.id;
+  let client;
   try{
-  const squareResult = await pool.query(
+    client = await pool.connect();
+  const squareResult = await client.query(
       "SELECT id FROM squares WHERE board_id = $1 AND index = $2",
       [boardID, index]
     );
@@ -398,14 +426,14 @@ app.post('/api/board/:boardID/square/:index/toggle-marker', authenticateToken, a
 
   const squareID = squareResult.rows[0].id;
 
-  const existingMarker = await pool.query(
+  const existingMarker = await client.query(
       `SELECT id FROM marker
        WHERE player_id = $1 AND square_id = $2 AND board_id = $3`,
       [playerID, squareID, boardID]
     ); 
 
   if (existingMarker.rows.length > 0) {
-    await pool.query(
+    await client.query(
       `DELETE FROM marker WHERE id = $1`,
       [existingMarker.rows[0].id]
     );
@@ -414,7 +442,8 @@ app.post('/api/board/:boardID/square/:index/toggle-marker', authenticateToken, a
       message: "Marker removed",
     });
   } else {
-    await pool.query(
+
+    await client.query(
       `INSERT INTO marker (player_id, square_id, board_id) VALUES ($1, $2, $3)`,
       [playerID, squareID, boardID]
     );
@@ -424,7 +453,11 @@ app.post('/api/board/:boardID/square/:index/toggle-marker', authenticateToken, a
       marked: true,
     });
   }
+  await client.query('COMMIT');
+
+  
   } catch (error) { 
+    await client.query('ROLLBACK');
     console.error("Toggle marker error:", error);
 
     res.status(500).json({
@@ -432,6 +465,9 @@ app.post('/api/board/:boardID/square/:index/toggle-marker', authenticateToken, a
       message: "Server error toggling marker",
       marked: false,
     });
+  }
+  finally {
+    client.release();
   }
 });
 
@@ -461,6 +497,7 @@ app.get('/api/board/:boardID/players', async (req, res) => {
 app.post('/api/board/:boardID/ready', authenticateToken, async (req, res) => {
     const playerID = req.user.id;
     const {boardID} = req.params;
+    console.log('Checking ready for:', { playerID, boardID });
   try {
     const current = await pool.query(
       `SELECT ready FROM players WHERE user_id = $1 AND board_id = $2`,
@@ -488,8 +525,37 @@ app.post('/api/board/:boardID/ready', authenticateToken, async (req, res) => {
 app.post('/api/board/:boardID/start', authenticateToken, async(req, res) => {
     const playerID = req.user.id;
     const {boardID} = req.params;
+
+  let client;
+  function shuffleArray(array) {
+    return [...array].sort(() => Math.random() - 0.5);
+  } 
     try{
-        const host = await pool.query(
+    client = await pool.connect();
+    const playersResult = await client.query(
+    `SELECT user_id FROM players WHERE board_id = $1`,
+    [boardID]
+  );
+  
+  const squaresResult = await client.query(
+    `SELECT id, index FROM squares WHERE board_id = $1`,
+    [boardID]
+  );
+  const squares = squaresResult.rows;
+  const players = playersResult.rows.map(row => row.user_id);
+  const shuffledSquares = shuffleArray(squares);
+
+  for (let i = 0; i< shuffledSquares.length; i++) {
+    const square = shuffledSquares[i];
+    const playerID = players[i % players.length];
+    await client.query(
+      'UPDATE squares SET player_id = $1 WHERE id = $2',
+      [playerID, square.id]
+    );
+  }
+  
+
+        const host = await client.query(
             'SELECT host_id FROM boards WHERE id = $1',
             [boardID]
         );
@@ -499,26 +565,32 @@ app.post('/api/board/:boardID/start', authenticateToken, async(req, res) => {
         }
 
         if(playerID === host.rows[0].host_id) {
-            const players = await pool.query(
+            const players = await client.query(
                 'SELECT ready FROM players WHERE board_id = $1',
                 [boardID]
-            )
-        const someoneNotReady = players.rows.some(p => p.ready === false);
+            );
+            const someoneNotReady = players.rows.some(p => p.ready === false);
 
         if (someoneNotReady) {
             return res.json({ success: false, message: 'Not all players are ready' });
         }
 
-        return res.json({success: true, message: "Game will start"});
-        await pool.query(`UPDATE boards SET status = 'creation' WHERE id = $1`, [boardID]);
+        
+      
+        
         } else {
             return res.json({ success: false, message: 'Player is not the host' });
         }
-        
+        await client.query(`UPDATE boards SET status = 'creation' WHERE id = $1`, [boardID]);
+        await client.query('COMMIT');
+        return res.json({success: true, message: "Game will start"});
     } catch(error) {
+        await client.query('ROLLBACK');
         console.error('Error with the start button', error);
         res.status(500).json({ success: false, message: 'Failed to start game' });
-    }
+    } finally {
+       client.release();
+}
 });
 
 
