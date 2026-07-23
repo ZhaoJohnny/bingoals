@@ -2,7 +2,6 @@ import { useState } from 'react';
 import '../styles/StartMenu.css';
 
 function StartMenu({ onCreate, onJoin }) {
-    const playerID = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')).id : null;
     const [boardID, setBoardID] = useState('');
 
     async function handleJoinClick() {
@@ -21,7 +20,7 @@ function StartMenu({ onCreate, onJoin }) {
                 alert('Please enter a valid board ID');
                 return;
             }
-            onJoin(playerID, boardID);
+            onJoin(boardID);
         } catch (error) {
             console.error('Error checking board:', error);
             alert('Something went wrong checking that board ID')
@@ -29,7 +28,7 @@ function StartMenu({ onCreate, onJoin }) {
     }
 
     function handleCreateClick() {
-        onCreate(playerID);
+        onCreate();
     }
 
   return (

@@ -4,7 +4,7 @@ import StartMenu from "../components/StartMenu";
 function StartPage() {
   const navigate = useNavigate();
 
-  async function handleCreateGame(playerID) {
+  async function handleCreateGame() {
     try {
       const response = await fetch("http://localhost:3001/api/create-game", {
         method: "POST",
@@ -26,7 +26,7 @@ function StartPage() {
     }
   }
 
-  function handleJoinGame(playerID, roomCode) {
+  function handleJoinGame(roomCode) {
     navigate(`/board/${roomCode}`);
   }
 
