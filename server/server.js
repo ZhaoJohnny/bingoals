@@ -153,15 +153,26 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-app.post('/api/bingo-square', authenticateToken, async (req, res) => {
-  const { boardID, index, content } = req.body;
-
-  if (boardID === undefined || index === undefined) {
-    return res.status(400).json({ success: false, message: 'boardID and index are required' });
-  }
-
+app.post('/api/board/:boardID/square/:index/bingo-square', authenticateToken, async (req, res) => {
+  const {content } = req.body;
+  const playerID = req.user.id;
+  const boardID = req.params.boardID;
+  const index = req.params.index;
+  let client;
   try {
-    const result = await pool.query(
+    client = await pool.connect();
+    const squarePlayerResult = await client.query(
+      `SELECT player_id FROM squares WHERE index = $1 AND board_id = $2`,
+      [index, boardID]
+    );
+    if (squarePlayerResult.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Square not assigned to player' });
+    }
+    const squarePlayerID = squarePlayerResult.rows[0].player_id;
+    if (squarePlayerID !== playerID) {
+      return res.status(403).json({ success: false, message: 'You are not the assigned player for this square' });
+    }
+    const result = await client.query(
       `UPDATE squares SET goal = $1 WHERE board_id = $2 AND index = $3 RETURNING id, goal`,
       [content, boardID, index]
     );
@@ -170,10 +181,16 @@ app.post('/api/bingo-square', authenticateToken, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Square not found for that board/index' });
     }
 
+    
     res.json({ success: true, message: 'Bingo square saved', square: result.rows[0] });
+    client.query('COMMIT');
   } catch (error) {
+    client.query('ROLLBACK');
     console.error('Error saving bingo square:', error);
     res.status(500).json({ success: false, message: 'Failed to save bingo square' });
+  }
+  finally {
+    client.release();
   }
 });
 

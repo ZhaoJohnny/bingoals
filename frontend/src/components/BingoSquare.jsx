@@ -7,7 +7,6 @@ function BingoSquare({ content, boardID, index, status, marked, onToggleMarker }
   useEffect(() => {
     setText(content || '');
   }, [content]);
-
   async function handleKeyDown(e) {
     if (status !== 'creation') return;
     if (status === 'ended') return(
@@ -17,7 +16,7 @@ function BingoSquare({ content, boardID, index, status, marked, onToggleMarker }
       e.preventDefault();
 
       try {
-        const response = await fetch('http://localhost:3001/api/bingo-square', {
+        const response = await fetch(`http://localhost:3001/api/board/${boardID}/square/${index}/bingo-square`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
