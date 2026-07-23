@@ -88,11 +88,15 @@ app.post("/api/register", async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: '1h' }
     );
-    res.status(201).json({
+    res.json({
       success: true,
-      message: "Account created successfully",
+      message: "Registration successful",
       token: token,
-      user: result.rows[0],
+      user: {
+        id: user.rows[0].id,
+        name: user.rows[0].name,
+        email: user.rows[0].email,
+      },
     });
   } catch (error) {
     console.error("Register error:", error);
@@ -241,10 +245,10 @@ app.post('/api/create-game', authenticateToken, async (req, res) => {
     );
 
     // Assign this board as the user's current board
-    await client.query(
-      `UPDATE users SET board_id = $1 WHERE id = $2`,
-      [boardId, playerID]
-    );
+    // await client.query(
+    //   `UPDATE users SET board_id = $1 WHERE id = $2`,
+    //   [boardId, playerID]
+    // );
 
     await client.query('COMMIT');
 
@@ -261,6 +265,7 @@ app.post('/api/create-game', authenticateToken, async (req, res) => {
     client.release();
   }
 });
+
 
 app.get('/api/board/:boardID', authenticateToken, async (req, res) => {
   const { boardID } = req.params;
