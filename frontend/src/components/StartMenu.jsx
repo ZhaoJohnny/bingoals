@@ -11,7 +11,8 @@ function StartMenu({ onCreate, onJoin }) {
             return;
         }
         try {
-            const res = await fetch(`http://localhost:3001/api/board/${boardID}`, {
+            const res = await fetch(`http://localhost:3001/api/board/${boardID}/join`, {
+                method: 'POST',
                 headers: {
                     authorization: `Bearer ${localStorage.getItem('token')}`
                 },

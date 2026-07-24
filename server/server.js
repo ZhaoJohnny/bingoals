@@ -265,7 +265,27 @@ app.post('/api/create-game', authenticateToken, async (req, res) => {
     client.release();
   }
 });
-
+app.post('/api/board/:boardID/join', authenticateToken, async (req, res) => {
+  const { boardID } = req.params;
+  const playerID = req.user.id;
+  try {
+    const boardResult = await pool.query(
+      `SELECT * FROM boards WHERE id = $1`,
+      [boardID]
+    );
+    if (boardResult.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Board not found' });
+    }
+    const result = await pool.query(
+      `INSERT INTO players (user_id, board_id, ready) VALUES ($1, $2, false) ON CONFLICT (user_id, board_id) DO NOTHING RETURNING *`,
+      [playerID, boardID]
+    );
+    res.json({ success: true, message: 'Successfully joined board', player: result.rows[0] });
+  } catch (error) {
+    console.error('Error joining board:', error);
+    res.status(500).json({ success: false, message: 'Failed to join board' });
+  }
+});
 
 app.get('/api/board/:boardID', authenticateToken, async (req, res) => {
   const { boardID } = req.params;
