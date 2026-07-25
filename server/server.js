@@ -489,7 +489,29 @@ app.get('/api/board/:boardID/players', async (req, res) => {
   }
 });
 
-app.post('/api/board/:boardID/ready', authenticateToken, async (req, res) => {
+app.get('/api/board/:boardID/getReady', authenticateToken, async (req, res) => {
+    const playerID = req.user.id;
+    const {boardID} = req.params;
+    try{
+        const readyStatus = await pool.query(
+            'SELECT ready FROM players WHERE user_id = $1 AND board_id = $2',
+            [playerID, boardID]
+        );
+
+        if (readyStatus.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Player not found on this board' });
+        }
+
+       res.json({ success: true, message: 'Ready status updated', ready: readyStatus.rows[0].ready });
+
+
+    } catch (error) {
+    console.error('Error with getting ready', error);
+    res.status(500).json({ success: false, message: 'Failed to get ready status' });
+  }
+});
+
+app.post('/api/board/:boardID/changeReady', authenticateToken, async (req, res) => {
     const playerID = req.user.id;
     const {boardID} = req.params;
   try {

@@ -8,6 +8,7 @@ import BingoButton from "../components/BingoButton";
 function BoardPage() {
   const { boardID } = useParams();
   const [status, setStatus] = useState('');
+
   async function onStart() {
     try {
       const res = await fetch(`http://localhost:3001/api/board/${boardID}/start`, {
@@ -24,20 +25,6 @@ function BoardPage() {
     } catch (error) {
       console.error('Error starting game', error);
     }        
-  }
-
-  async function handleReadyToggle() {
-    try {
-      const res = await fetch(`http://localhost:3001/api/board/${boardID}/ready`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-         },
-      });
-    } catch (error) {
-      console.error('Error toggling ready', error);
-    } 
   }
 
   async function loadBoardStatus() {
@@ -57,6 +44,7 @@ function BoardPage() {
         console.error('Failed to get board status', err);
       }
     }
+
   async function handleBingo() {
     try {
       const statusResponse = await fetch(`http://localhost:3001/api/board/${boardID}/status`, {
@@ -96,7 +84,7 @@ function BoardPage() {
 
   if (status === 'lobby') {
     return (
-      <LobbyPhase boardID={boardID} onToggle={handleReadyToggle} onStart={onStart} />
+      <LobbyPhase boardID={boardID} onStart = {onStart}/>
     );
   }
   if (status === 'creation') {
