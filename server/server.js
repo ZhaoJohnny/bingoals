@@ -240,12 +240,6 @@ app.post('/api/create-game', authenticateToken, async (req, res) => {
       [playerID, boardId]
     );
 
-    // Assign this board as the user's current board
-    await client.query(
-      `UPDATE users SET board_id = $1 WHERE id = $2`,
-      [boardId, playerID]
-    );
-
     await client.query('COMMIT');
 
     res.json({
@@ -322,6 +316,7 @@ app.get('/api/board/:boardID', authenticateToken, async (req, res) => {
     });
   }
 });
+
 app.get('/api/board/:boardID/status', authenticateToken, async (req, res) => {
   const { boardID } = req.params;
   const playerID = req.user.id;
