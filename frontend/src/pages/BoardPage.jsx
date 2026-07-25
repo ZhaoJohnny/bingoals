@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 import LobbyPhase from "../components/phases/LobbyPhase";
 import BingoBoard from "../components/BingoBoard";
 import BingoButton from "../components/BingoButton";
+import FinishButton from "../components/FinishButton";
 
 function BoardPage() {
   const { boardID } = useParams();
@@ -39,7 +40,23 @@ function BoardPage() {
       console.error('Error toggling ready', error);
     } 
   }
-
+  async function onFinish(){
+    try {
+      const res = await fetch(`http://localhost:3001/api/board/${boardID}/finish-creation`,{
+        method: 'PUT',
+        headers: {
+            authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
+    const data = await res.json();
+    if (data.success){
+      setStatus(data.status);
+    }
+    } catch (err) {
+      console.error ( 'Failed to change to playing', err);
+    }
+    
+  }
   async function loadBoardStatus() {
       try {
         const res = await fetch(`http://localhost:3001/api/board/${boardID}/status`, {
@@ -103,6 +120,7 @@ function BoardPage() {
     return (
       <div>
       <BingoBoard title="BOARD NAME" boardID={boardID} status={status} />
+      <FinishButton onFinish={onFinish}/>
       </div>
     );
   }

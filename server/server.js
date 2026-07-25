@@ -286,6 +286,29 @@ app.post('/api/board/:boardID/join', authenticateToken, async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to join board' });
   }
 });
+app.put('/api/board/:boardID/finish-creation', authenticateToken, async (req, res) => {
+  const {boardID} = req.params;
+  const playerID = req.user.id;
+  try{
+    const result = await pool.query(
+      `UPDATE boards SET status = 'playing' WHERE id = $1`,
+      [boardID]
+    )
+    return res.json({
+        success: true,
+        message: 'Board changed to playing',
+        status: 'playing'
+      });
+  }
+  catch(error){
+    console.error('Error fetching board:', error);
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch board',
+    });
+  }
+});
 
 app.get('/api/board/:boardID', authenticateToken, async (req, res) => {
   const { boardID } = req.params;
