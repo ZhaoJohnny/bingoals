@@ -3,14 +3,14 @@ import ReadyButton from "../ReadyButton";
 import "../../styles/LobbyPhase.css";
 import StartButton from "../StartButton";
 
-function LobbyPhase({ boardID, onToggle, onStart }) {
+function LobbyPhase({ boardID, onStart}) {
   return (
     <div className="lobby-phase">
       <div className="lobby-center">
-        <PlayerList boardID={boardID} />
+        <PlayerList boardID={boardID}/>
       </div>
       <div className="lobby-bottom">
-        <ReadyButton boardID={boardID} onToggle={onToggle} />
+        <ReadyButton boardID={boardID}/>
       </div>
       <div className="lobby-bottom">
         <StartButton boardID={boardID} onStart={onStart}/>
