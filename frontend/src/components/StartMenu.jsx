@@ -1,9 +1,32 @@
 import { useState } from 'react';
+import { useNavigate } from "react-router-dom";
 import '../styles/StartMenu.css';
 
-function StartMenu({ onCreate, onJoin }) {
+function StartMenu({ }) {
     const [boardID, setBoardID] = useState('');
+    const navigate = useNavigate();
 
+    async function handleCreateClick() {
+    try {
+      const response = await fetch("http://localhost:3001/api/create-game", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create game");
+      }
+
+      const data = await response.json();
+
+      navigate(`/board/${data.boardID}`);
+    } catch (error) {
+      console.error(error);
+    }
+  }
     async function handleJoinClick() {
          if (!boardID) {
             alert('Please enter a board ID');
@@ -20,15 +43,11 @@ function StartMenu({ onCreate, onJoin }) {
                 alert('Please enter a valid board ID');
                 return;
             }
-            onJoin(boardID);
+            navigate(`/board/${boardID}`);
         } catch (error) {
             console.error('Error checking board:', error);
             alert('Something went wrong checking that board ID')
         }
-    }
-
-    function handleCreateClick() {
-        onCreate();
     }
 
   return (
