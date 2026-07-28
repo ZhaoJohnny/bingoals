@@ -46,6 +46,23 @@ function BoardPage() {
       }
     }
 
+    async function onFinish() {
+        try{
+            const finishCreationResponse = await fetch(`http://localhost:3001/api/board/${boardID}/finish-creation`, {
+                headers: {
+                    authorization: `Bearer ${localStorage.getItem('token')}`,
+                }
+            });
+            const data = await finishCreationResponse.json();
+
+            if (data.success) {
+                setStatus(data.status);
+            }
+        } catch (error) {
+            console.error("Failed to finish creation phase", error)
+        }
+    }
+
   async function handleBingo() {
     try {
       const statusResponse = await fetch(`http://localhost:3001/api/board/${boardID}/status`, {

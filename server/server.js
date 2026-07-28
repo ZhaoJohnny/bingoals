@@ -280,6 +280,7 @@ app.post('/api/board/:boardID/join', authenticateToken, async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to join board' });
   }
 });
+
 app.put('/api/board/:boardID/finish-creation', authenticateToken, async (req, res) => {
   const {boardID} = req.params;
   const playerID = req.user.id;
