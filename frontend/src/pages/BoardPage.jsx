@@ -109,7 +109,7 @@ function BoardPage() {
     return (
       <div>
       <BingoBoard title="BOARD NAME" boardID={boardID} status={status} />
-      {/* <FinishButton onFinish={onFinish}/> */}
+      <FinishButton onFinish={onFinish}/>
       </div>
     );
   }
