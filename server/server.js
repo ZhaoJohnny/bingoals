@@ -227,16 +227,16 @@ app.post('/api/create-game', authenticateToken, async (req, res) => {
     const boardId = boardResult.rows[0].id;
 
     // 25 empty shared squares
-    const valuesSql = [];
-    const params = [];
-    for (let i = 0; i < 25; i++) {
-      valuesSql.push(`($${params.length + 1}, $${params.length + 2}, '')`);
-      params.push(boardId, i);
-    }
-    await client.query(
-      `INSERT INTO squares (board_id, index, goal) VALUES ${valuesSql.join(', ')}`,
-      params
-    );
+    // const valuesSql = [];
+    // const params = [];
+    // for (let i = 0; i < 25; i++) {
+    //   valuesSql.push(`($${params.length + 1}, $${params.length + 2}, '')`);
+    //   params.push(boardId, i);
+    // }
+    // await client.query(
+    //   `INSERT INTO squares (board_id, index, goal) VALUES ${valuesSql.join(', ')}`,
+    //   params
+    // );
 
     // Register the creator as a player on this board
     await client.query(
@@ -589,8 +589,22 @@ app.post('/api/board/:boardID/changeReady', authenticateToken, async (req, res) 
 app.post('/api/board/:boardID/start', authenticateToken, async(req, res) => {
     const playerID = req.user.id;
     const {boardID} = req.params;
+    const name = req.user.name;
 
-  let client;
+    let client;
+
+    // 25 empty shared squares
+    const valuesSql = [];
+    const params = [];
+    for (let i = 0; i < 25; i++) {
+      valuesSql.push(`($${params.length + 1}, $${params.length + 2}, '')`);
+      params.push(boardID, i);
+    }
+    await pool.query(
+      `INSERT INTO squares (board_id, index, goal) VALUES ${valuesSql.join(', ')}`,
+      params
+    );
+
   function shuffleArray(array) {
     return [...array].sort(() => Math.random() - 0.5);
   } 
@@ -619,28 +633,28 @@ app.post('/api/board/:boardID/start', authenticateToken, async(req, res) => {
   }
   
 
-        const host = await client.query(
-            'SELECT host_id FROM boards WHERE id = $1',
+    const host = await client.query(
+        'SELECT host_id FROM boards WHERE id = $1',
+        [boardID]
+    );
+
+    if (host.rows.length === 0) {
+        return res.status(404).json({ success: false, message: 'Player not found on this board' });
+    }
+
+    if(playerID === host.rows[0].host_id) {
+        const players = await client.query(
+            'SELECT ready FROM players WHERE board_id = $1',
             [boardID]
         );
+    const someoneNotReady = players.rows.some(p => p.ready === false);
 
-        if (host.rows.length === 0) {
-            return res.status(404).json({ success: false, message: 'Player not found on this board' });
-        }
-
-        if(playerID === host.rows[0].host_id) {
-            const players = await client.query(
-                'SELECT ready FROM players WHERE board_id = $1',
-                [boardID]
-            );
-            const someoneNotReady = players.rows.some(p => p.ready === false);
-
-        if (someoneNotReady) {
-            return res.status(400).json({ success: false, message: 'Not all players are ready' });
-        }
-        } else {
-            return res.status(403).json({ success: false, message: 'Player is not the host' });
-        }
+    if (someoneNotReady) {
+        return res.status(400).json({ success: false, message: 'Not all players are ready' });
+    }
+    } else {
+        return res.status(403).json({ success: false, message: 'Player is not the host' });
+    }
         await client.query(`UPDATE boards SET status = 'creation' WHERE id = $1`, [boardID]);
         await client.query('COMMIT');
         return res.json({success: true, message: "Game will start", status: 'creation'});

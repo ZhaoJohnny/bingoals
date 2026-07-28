@@ -17,11 +17,8 @@ function ReadyButton({ boardID }) {
         setReady(data.ready);
       } catch (error) {
         console.error('Error fetching ready status', error);
-      } finally {
-        setLoading(false);
       }
     }
-
     fetchReadyStatus();
   }, [boardID]);
 
