@@ -49,6 +49,7 @@ function BoardPage() {
     async function onFinish() {
         try{
             const finishCreationResponse = await fetch(`http://localhost:3001/api/board/${boardID}/finish-creation`, {
+                method: 'PUT',
                 headers: {
                     authorization: `Bearer ${localStorage.getItem('token')}`,
                 }
