@@ -1,7 +1,7 @@
 // pages/BoardPage.jsx
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import LobbyPhase from "../components/phases/LobbyPhase";
+import LobbyPhase from "../components/Phases/LobbyPhase";
 import BingoBoard from "../components/BingoBoard";
 import BingoButton from "../components/BingoButton";
 import FinishButton from "../components/FinishButton";
