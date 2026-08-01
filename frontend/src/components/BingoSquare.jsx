@@ -16,7 +16,7 @@ function BingoSquare({ content, boardID, index, status, marked, onToggleMarker }
       e.preventDefault();
 
       try {
-        const response = await fetch(`http://localhost:3001/api/board/${boardID}/square/${index}/bingo-square`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/board/${boardID}/square/${index}/bingo-square`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

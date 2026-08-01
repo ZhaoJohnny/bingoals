@@ -12,7 +12,7 @@ function BoardPage() {
 
   async function onStart() {
     try {
-      const res = await fetch(`http://localhost:3001/api/board/${boardID}/start`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/board/${boardID}/start`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -30,7 +30,7 @@ function BoardPage() {
 
   async function loadBoardStatus() {
       try {
-        const res = await fetch(`http://localhost:3001/api/board/${boardID}/status`, {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/board/${boardID}/status`, {
           headers: {
             authorization: `Bearer ${localStorage.getItem('token')}`,
           },
@@ -48,7 +48,7 @@ function BoardPage() {
 
     async function onFinish() {
         try{
-            const finishCreationResponse = await fetch(`http://localhost:3001/api/board/${boardID}/finish-creation`, {
+            const finishCreationResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/board/${boardID}/finish-creation`, {
                 method: 'PUT',
                 headers: {
                     authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -66,7 +66,7 @@ function BoardPage() {
 
   async function handleBingo() {
     try {
-      const statusResponse = await fetch(`http://localhost:3001/api/board/${boardID}/status`, {
+      const statusResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/board/${boardID}/status`, {
         headers: {
           authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -77,7 +77,7 @@ function BoardPage() {
         alert("Game has already ended.");
         return;
       }
-      const response = await fetch(`http://localhost:3001/api/board/${boardID}/bingo`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/board/${boardID}/bingo`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

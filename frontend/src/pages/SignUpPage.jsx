@@ -8,7 +8,7 @@ function SignUpPage() {
         const email = event.target[1].value;
         const password = event.target[2].value;
         try {
-            const response = await fetch("http://localhost:3001/api/register", {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/register`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"

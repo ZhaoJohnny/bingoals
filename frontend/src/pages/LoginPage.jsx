@@ -7,7 +7,7 @@ function LoginPage() {
         const email = event.target[0].value;
         const password = event.target[1].value;
         try {
-            const response = await fetch("http://localhost:3001/api/login", {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/login`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"

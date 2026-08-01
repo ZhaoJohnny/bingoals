@@ -8,7 +8,7 @@ function StartMenu({ }) {
 
     async function handleCreateClick() {
     try {
-      const response = await fetch("http://localhost:3001/api/create-game", {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/create-game`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -33,7 +33,7 @@ function StartMenu({ }) {
             return;
         }
         try {
-            const res = await fetch(`http://localhost:3001/api/board/${boardID}/join`, {
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/board/${boardID}/join`, {
                 method: 'POST',
                 headers: {
                     authorization: `Bearer ${localStorage.getItem('token')}`

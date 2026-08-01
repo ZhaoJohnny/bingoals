@@ -7,7 +7,7 @@ function ReadyButton({ boardID }) {
   useEffect(() => {
     async function fetchReadyStatus() {
       try {
-        const res = await fetch(`http://localhost:3001/api/board/${boardID}/getReady`, {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/board/${boardID}/getReady`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,

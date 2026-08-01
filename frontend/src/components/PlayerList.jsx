@@ -8,7 +8,7 @@ function PlayerList({ boardID }) {
   useEffect(() => {
     async function loadPlayers() {
       try {
-        const res = await fetch(`http://localhost:3001/api/board/${boardID}/players`);
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/board/${boardID}/players`);
         const data = await res.json();
         if (data.success) setPlayers(data.players);
       } catch (error) {
