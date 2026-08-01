@@ -270,6 +270,10 @@ app.post('/api/board/:boardID/join', authenticateToken, async (req, res) => {
     if (boardResult.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Board not found' });
     }
+    const status = boardResult.rows[0].status;
+    if (status !== 'lobby') {
+      return res.status(400).json({ success: false, message: 'Cannot join a game that has already started' });
+    }
     const result = await pool.query(
       `INSERT INTO players (user_id, board_id, ready) VALUES ($1, $2, false) ON CONFLICT (user_id, board_id) DO NOTHING RETURNING *`,
       [playerID, boardID]
