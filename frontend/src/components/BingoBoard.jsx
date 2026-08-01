@@ -12,7 +12,7 @@ function BingoBoard({ title, boardID, status }) {
   useEffect(() => {
     async function loadBoard() {
       try {
-        const res = await fetch(`http://localhost:3001/api/board/${boardID}`, {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/board/${boardID}`, {
           headers: {
             authorization: `Bearer ${localStorage.getItem('token')}`,
           },
@@ -42,7 +42,7 @@ function BingoBoard({ title, boardID, status }) {
   async function handleToggleMarker(index) {
     try {
       const response = await fetch(
-        `http://localhost:3001/api/board/${boardID}/square/${index}/toggle-marker`,
+        `${import.meta.env.VITE_API_URL}/api/board/${boardID}/square/${index}/toggle-marker`,
         {
           method: 'POST',
           headers: {
