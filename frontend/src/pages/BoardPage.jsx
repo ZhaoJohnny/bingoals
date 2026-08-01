@@ -19,10 +19,15 @@ function BoardPage() {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
       });
+      const data = await res.json();
       if (res.ok) {
-        const data = await res.json();
+        
         setStatus(data.status);
       }
+        if (!res.ok) {
+      alert(data.message);
+      return;
+    }
     } catch (error) {
       console.error('Error starting game', error);
     }        

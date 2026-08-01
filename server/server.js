@@ -604,85 +604,165 @@ app.post('/api/board/:boardID/changeReady', authenticateToken, async (req, res) 
   }
 });
 
-app.post('/api/board/:boardID/start', authenticateToken, async(req, res) => {
-    const playerID = req.user.id;
-    const {boardID} = req.params;
-    const name = req.user.name;
+app.post('/api/board/:boardID/start', authenticateToken, async (req, res) => {
+  const userID = req.user.id;
+  const { boardID } = req.params;
 
-    let client;
-
-    // 25 empty shared squares
-    const valuesSql = [];
-    const params = [];
-    for (let i = 0; i < 25; i++) {
-      valuesSql.push(`($${params.length + 1}, $${params.length + 2}, '')`);
-      params.push(boardID, i);
-    }
-    await pool.query(
-      `INSERT INTO squares (board_id, index, goal) VALUES ${valuesSql.join(', ')}`,
-      params
-    );
+  let client;
 
   function shuffleArray(array) {
     return [...array].sort(() => Math.random() - 0.5);
-  } 
-    try{
-    client = await pool.connect();
-    const playersResult = await client.query(
-    `SELECT user_id FROM players WHERE board_id = $1`,
-    [boardID]
-  );
-  
-  const squaresResult = await client.query(
-    `SELECT id, index FROM squares WHERE board_id = $1`,
-    [boardID]
-  );
-  const squares = squaresResult.rows;
-  const players = playersResult.rows.map(row => row.user_id);
-  const shuffledSquares = shuffleArray(squares);
-
-  for (let i = 0; i< shuffledSquares.length; i++) {
-    const square = shuffledSquares[i];
-    const playerID = players[i % players.length];
-    await client.query(
-      'UPDATE squares SET player_id = $1 WHERE id = $2',
-      [playerID, square.id]
-    );
   }
-  
 
-    const host = await client.query(
-        'SELECT host_id FROM boards WHERE id = $1',
-        [boardID]
+  try {
+    client = await pool.connect();
+    await client.query('BEGIN');
+
+    // 1. Check board exists and current user is host
+    const boardResult = await client.query(
+      `SELECT id, host_id, status FROM boards WHERE id = $1`,
+      [boardID]
     );
 
-    if (host.rows.length === 0) {
-        return res.status(404).json({ success: false, message: 'Player not found on this board' });
+    if (boardResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({
+        success: false,
+        message: 'Board not found',
+      });
     }
 
-    if(playerID === host.rows[0].host_id) {
-        const players = await client.query(
-            'SELECT ready FROM players WHERE board_id = $1',
-            [boardID]
-        );
-    const someoneNotReady = players.rows.some(p => p.ready === false);
+    const board = boardResult.rows[0];
+
+    if (Number(userID) !== Number(board.host_id)) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({
+        success: false,
+        message: 'Player is not the host',
+      });
+    }
+
+    // Optional: prevent starting twice
+    if (board.status === 'playing' || board.status === 'ended') {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        success: false,
+        message: 'Game has already started or ended',
+      });
+    }
+
+    // 2. Check all players are ready
+    const playersResult = await client.query(
+      `SELECT user_id, ready FROM players WHERE board_id = $1`,
+      [boardID]
+    );
+
+    const players = playersResult.rows;
+
+    if (players.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        success: false,
+        message: 'No players found on this board',
+      });
+    }
+
+    const someoneNotReady = players.some((p) => p.ready === false);
 
     if (someoneNotReady) {
-        return res.status(400).json({ success: false, message: 'Not all players are ready' });
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        success: false,
+        message: 'Not all players are ready',
+      });
     }
-    } else {
-        return res.status(403).json({ success: false, message: 'Player is not the host' });
+
+    // 3. Check existing squares
+    let squaresResult = await client.query(
+      `SELECT id, index FROM squares WHERE board_id = $1 ORDER BY index ASC`,
+      [boardID]
+    );
+
+    let squares = squaresResult.rows;
+
+    // 4. If no squares exist, create 25 now
+    if (squares.length === 0) {
+      const valuesSql = [];
+      const params = [];
+
+      for (let i = 0; i < 25; i++) {
+        valuesSql.push(`($${params.length + 1}, $${params.length + 2}, '')`);
+        params.push(boardID, i);
+      }
+
+      await client.query(
+        `INSERT INTO squares (board_id, index, goal)
+         VALUES ${valuesSql.join(', ')}`,
+        params
+      );
+
+      // Re-fetch the newly created squares
+      squaresResult = await client.query(
+        `SELECT id, index FROM squares WHERE board_id = $1 ORDER BY index ASC`,
+        [boardID]
+      );
+
+      squares = squaresResult.rows;
     }
-        await client.query(`UPDATE boards SET status = 'creation' WHERE id = $1`, [boardID]);
-        await client.query('COMMIT');
-        return res.json({success: true, message: "Game will start", status: 'creation'});
-    } catch(error) {
-        await client.query('ROLLBACK');
-        console.error('Error with the start button', error);
-        res.status(500).json({ success: false, message: 'Failed to start game' });
-    } finally {
-       client.release();
-}
+
+    // 5. If something is wrong, stop
+    if (squares.length !== 25) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        success: false,
+        message: `Expected 25 squares, found ${squares.length}`,
+      });
+    }
+
+    // 6. Shuffle and assign squares to players equally
+    const shuffledSquares = shuffleArray(squares);
+    const shuffledPlayers = shuffleArray(players);
+
+    for (let i = 0; i < shuffledSquares.length; i++) {
+      const square = shuffledSquares[i];
+      const player = shuffledPlayers[i % shuffledPlayers.length];
+
+      await client.query(
+        `UPDATE squares SET player_id = $1 WHERE id = $2`,
+        [player.user_id, square.id]
+      );
+    }
+
+    // 7. Change board status
+    await client.query(
+      `UPDATE boards SET status = 'creation' WHERE id = $1`,
+      [boardID]
+    );
+
+    await client.query('COMMIT');
+
+    return res.json({
+      success: true,
+      message: 'Game started, 25 squares created if needed, and squares assigned',
+      status: 'creation',
+    });
+  } catch (error) {
+    if (client) {
+      await client.query('ROLLBACK');
+    }
+
+    console.error('Error with the start button:', error);
+
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to start game',
+      error: error.message,
+    });
+  } finally {
+    if (client) {
+      client.release();
+    }
+  }
 });
 
 
