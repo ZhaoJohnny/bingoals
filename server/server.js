@@ -1,25 +1,38 @@
 import express from 'express';
 import cors from 'cors';
-import pg from "pg";
+import pg from 'pg';
 import dotenv from 'dotenv';
 import bcrypt from 'bcrypt';
-import jwt from "jsonwebtoken";
+import jwt from 'jsonwebtoken';
+
 dotenv.config();
 
 const app = express();
-const PORT = 3001;
 const { Pool } = pg;
 
-app.use(cors());
+const PORT = process.env.PORT || 3001;
+
 app.use(express.json());
 
-const pool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT,
-});
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    process.env.FRONTEND_URL
+  ],
+  credentials: true
+}));
+
+const poolConfig = {
+  connectionString: process.env.DATABASE_URL,
+};
+
+if (process.env.NODE_ENV === 'production') {
+  poolConfig.ssl = {
+    rejectUnauthorized: false,
+  };
+}
+
+const pool = new Pool(poolConfig);
 function authenticateToken(req, res, next) {
   const authHeader = req.headers["authorization"];
 
