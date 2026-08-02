@@ -24,7 +24,7 @@ function ReadyButton({ boardID }) {
 
 async function handleReadyToggle() {
     try {
-      const res = await fetch(`http://localhost:3001/api/board/${boardID}/changeReady`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/board/${boardID}/changeReady`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
