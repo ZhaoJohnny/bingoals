@@ -338,7 +338,7 @@ app.get('/api/board/:boardID', authenticateToken, async (req, res) => {
         message: 'Board not found',
       });
     }
-
+    
     const board = boardResult.rows[0];
 
     const squaresResult = await pool.query(
@@ -461,10 +461,6 @@ app.put('/api/board/:boardID/bingo', authenticateToken, async (req, res) => {
   finally {
     client.release();
   }
-});
-app.put('/api/board/:boardID/assign-squares', authenticateToken, async (req, res) => {
-  const { boardID } = req.params;
-  
 });
 app.post('/api/board/:boardID/square/:index/toggle-marker', authenticateToken, async (req, res) => {
   const { boardID } = req.params;
@@ -607,7 +603,7 @@ app.post('/api/board/:boardID/changeReady', authenticateToken, async (req, res) 
 app.post('/api/board/:boardID/start', authenticateToken, async (req, res) => {
   const userID = req.user.id;
   const { boardID } = req.params;
-
+  const playerID = req.user.id;
   let client;
 
   function shuffleArray(array) {
@@ -629,6 +625,13 @@ app.post('/api/board/:boardID/start', authenticateToken, async (req, res) => {
       return res.status(404).json({
         success: false,
         message: 'Board not found',
+      });
+    }
+    if (boardResult.rows[0].host_id !== playerID) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({
+        success: false,
+        message: 'You are not the host of this board',
       });
     }
 

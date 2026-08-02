@@ -42,6 +42,7 @@ function StartMenu({ }) {
             const data = await res.json();
             if (!data.success) {
                 alert('Please enter a valid board ID');
+                console.log(data.message);
                 return;
             }
             navigate(`/board/${boardID}`);
