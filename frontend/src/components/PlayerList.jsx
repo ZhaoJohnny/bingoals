@@ -19,14 +19,14 @@ function PlayerList({ boardID }) {
     }
   useEffect(() => {
     loadPlayers(); // initial fetch
-    socket.on('join-board', (data) => {
+    socket.on('players-updated', (data) => {
       if (String(data.boardID) === String(boardID)) {
-      loadPlayers();
+        loadPlayers();
     }
     });
     return () => {
-    socket.off('players-updated');
-  };
+      socket.off('players-updated');
+    };
   }, [boardID]);
 
   if (loading) return <div className="players-list">Loading players…</div>;

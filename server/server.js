@@ -24,7 +24,7 @@ const io = new Server(server, {
 io.on('connection', (socket) => {
   console.log('Socket connected:', socket.id);
 
-  socket.on('join-board', (boardID) => {
+    socket.on('join-board', (boardID) => {
     socket.join(`board-${boardID}`);
     console.log(`Socket ${socket.id} joined board-${boardID}`);
   });
@@ -316,7 +316,7 @@ app.post('/api/board/:boardID/join', authenticateToken, async (req, res) => {
       `INSERT INTO players (user_id, board_id, ready) VALUES ($1, $2, false) ON CONFLICT (user_id, board_id) DO NOTHING RETURNING *`,
       [playerID, boardID]
     );
-    io.to(`board-${boardID}`).emit('join-board', {
+    io.to(`board-${boardID}`).emit('players-updated', {
       boardID,
       player: result.rows[0]
     });
@@ -778,7 +778,9 @@ app.post('/api/board/:boardID/start', authenticateToken, async (req, res) => {
     );
 
     await client.query('COMMIT');
-
+    io.to(`board-${boardID}`).emit('board-updated', {
+      boardID,
+    });
     return res.json({
       success: true,
       message: 'Game started, 25 squares created if needed, and squares assigned',

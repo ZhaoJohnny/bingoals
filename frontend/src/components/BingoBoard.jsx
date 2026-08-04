@@ -42,6 +42,7 @@ function BingoBoard({ title, boardID, status }) {
     socket.on('board-updated', (data) => {
       if (String(data.boardID) === String(boardID)) {
         loadEverything();
+        console.log('Board updated, reloading board:', boardID);
       }
     });
     loadEverything();

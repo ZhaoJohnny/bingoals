@@ -34,7 +34,6 @@ function BoardPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        socket.emit('board-updated', { boardID });
         setStatus(data.status);
       }
         if (!res.ok) {
@@ -119,6 +118,7 @@ function BoardPage() {
     socket.on('board-updated', (data) => {
       if (String(data.boardID) === String(boardID)) {
         loadBoardStatus();
+        console.log('Board updated, reloading status:', boardID);
       }
     });
     return () => {
