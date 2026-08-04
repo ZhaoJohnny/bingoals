@@ -335,7 +335,7 @@ app.put('/api/board/:boardID/finish-creation', authenticateToken, async (req, re
       `UPDATE boards SET status = 'playing' WHERE id = $1`,
       [boardID]
     )
-    socket.to(`board-${boardID}`).emit('board-updated', {
+    io.to(`board-${boardID}`).emit('board-updated', {
       boardID,
     });
     return res.json({
@@ -440,6 +440,7 @@ app.put('/api/board/:boardID/bingo', authenticateToken, async (req, res) => {
     let client;
   try {
     client = await pool.connect();
+    client.query('BEGIN');
     const squaresCountResult = await client.query(
       `SELECT COUNT(*) FROM squares WHERE board_id = $1`,
       [boardID]
@@ -457,31 +458,30 @@ app.put('/api/board/:boardID/bingo', authenticateToken, async (req, res) => {
         message: 'Player has not marked all squares',
       });
     }
-    else {
+    
       const endGameResult = await client.query(
         `UPDATE boards SET status = 'ended', winner_id = $1, ended_at = NOW() WHERE id = $2 RETURNING id, status, winner_id, ended_at`,
         [playerID, boardID]
       );
-      const winnerID = endGameResult.rows[0].winner_id;
-      return res.json({
-        success: true,
-        message: 'Game ended with a winner',
-        winnerID: winnerID,
-      });
-    }
-    if (endGameResult.rows.length === 0) {
+      if (endGameResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'Board not found',
       });
     }
-
-    res.json({
+      const winnerID = endGameResult.rows[0].winner_id;
+    
+    
+    await client.query('COMMIT');
+    io.to(`board-${boardID}`).emit('board-updated', { boardID });
+  
+    return res.json({
       success: true,
       message: winnerID ? 'Game ended with a winner' : 'Game ended because time ran out',
       board: endGameResult.rows[0],
+      status: endGameResult.rows[0].status,
     });
-    await client.query('COMMIT');
+    
   }catch (error) {
     await client.query('ROLLBACK');
     console.error('End game error:', error);

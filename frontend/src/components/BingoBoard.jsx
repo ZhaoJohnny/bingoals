@@ -38,16 +38,16 @@ function BingoBoard({ title, boardID, status }) {
       setLoading(false);
     }
   useEffect(() => {  
-
-    socket.on('board-updated', (data) => {
+    function handleBoardUpdated(data) {
       if (String(data.boardID) === String(boardID)) {
         loadEverything();
         console.log('Board updated, reloading board:', boardID);
       }
-    });
+    };
+    socket.on('board-updated', handleBoardUpdated);
     loadEverything();
     return () => {
-      socket.off('board-updated');
+      socket.off('board-updated', handleBoardUpdated);
     };
   }, [boardID, status]);
   async function handleToggleMarker(index) {

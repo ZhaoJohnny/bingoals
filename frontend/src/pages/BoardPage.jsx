@@ -102,9 +102,10 @@ function BoardPage() {
         },
       });
       const data = await response.json();
+      console.log("BINGO response:", data);
       if (data.success) {
         alert("BINGO!");
-        setStatus('ended');
+        setStatus(data.status);
       }
       else {
         alert("BINGO claim was not valid.");
@@ -114,16 +115,18 @@ function BoardPage() {
     }
   }
   useEffect(() => {
-    loadBoardStatus();
-    socket.on('board-updated', (data) => {
+    function handleBoardStatusUpdate(data) {
       if (String(data.boardID) === String(boardID)) {
         loadBoardStatus();
-        console.log('Board updated, reloading status:', boardID);
+        console.log('Board status updated, reloading status:', boardID);
       }
-    });
+    };
+    loadBoardStatus();
+    socket.on('board-updated', handleBoardStatusUpdate);
     return () => {
-      socket.off('board-updated');
+      socket.off('board-updated', handleBoardStatusUpdate);
     }
+    
   }, [boardID, status]);
 
 
