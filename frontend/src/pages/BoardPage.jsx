@@ -5,11 +5,24 @@ import LobbyPhase from "../components/Phases/LobbyPhase";
 import BingoBoard from "../components/BingoBoard";
 import BingoButton from "../components/BingoButton";
 import FinishButton from "../components/FinishButton";
+import socket from "../socket.js";
 
 function BoardPage() {
   const { boardID } = useParams();
   const [status, setStatus] = useState('');
+  useEffect(() => {
+  console.log('Joining socket board:', boardID);
 
+  socket.emit('join-board', boardID);
+
+  socket.on('connect', () => {
+    console.log('Socket connected on frontend:', socket.id);
+  });
+
+  return () => {
+    socket.off('connect');
+  };
+}, [boardID]);
   async function onStart() {
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/board/${boardID}/start`, {
@@ -21,7 +34,7 @@ function BoardPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        
+        socket.emit('board-updated', { boardID });
         setStatus(data.status);
       }
         if (!res.ok) {
@@ -102,7 +115,15 @@ function BoardPage() {
     }
   }
   useEffect(() => {
-  loadBoardStatus();
+    loadBoardStatus();
+    socket.on('board-updated', (data) => {
+      if (String(data.boardID) === String(boardID)) {
+        loadBoardStatus();
+      }
+    });
+    return () => {
+      socket.off('board-updated');
+    }
   }, [boardID, status]);
 
 

@@ -4,11 +4,35 @@ import pg from 'pg';
 import dotenv from 'dotenv';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-
+import http from 'http';
+import { Server } from 'socket.io';
 dotenv.config();
 
 const app = express();
 const { Pool } = pg;
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: [
+      'http://localhost:5173',
+      'https://bingoalss.vercel.app',
+      process.env.FRONTEND_URL
+    ],
+    credentials: true
+  }
+});
+io.on('connection', (socket) => {
+  console.log('Socket connected:', socket.id);
+
+  socket.on('join-board', (boardID) => {
+    socket.join(`board-${boardID}`);
+    console.log(`Socket ${socket.id} joined board-${boardID}`);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('Socket disconnected:', socket.id);
+  });
+});
 
 const PORT = process.env.PORT || 3001;
 
@@ -292,6 +316,10 @@ app.post('/api/board/:boardID/join', authenticateToken, async (req, res) => {
       `INSERT INTO players (user_id, board_id, ready) VALUES ($1, $2, false) ON CONFLICT (user_id, board_id) DO NOTHING RETURNING *`,
       [playerID, boardID]
     );
+    io.to(`board-${boardID}`).emit('join-board', {
+      boardID,
+      player: result.rows[0]
+    });
     res.json({ success: true, message: 'Successfully joined board', player: result.rows[0] });
   } catch (error) {
     console.error('Error joining board:', error);
@@ -307,6 +335,9 @@ app.put('/api/board/:boardID/finish-creation', authenticateToken, async (req, re
       `UPDATE boards SET status = 'playing' WHERE id = $1`,
       [boardID]
     )
+    socket.to(`board-${boardID}`).emit('board-updated', {
+      boardID,
+    });
     return res.json({
         success: true,
         message: 'Board changed to playing',
@@ -593,6 +624,9 @@ app.post('/api/board/:boardID/changeReady', authenticateToken, async (req, res) 
       `UPDATE players SET ready = $1 WHERE user_id = $2 AND board_id = $3 RETURNING ready`,
       [newReadyState, playerID, boardID]
     );
+    io.to(`board-${boardID}`).emit('players-updated', {
+       boardID,
+      });
 
     res.json({ success: true, message: 'Ready status updated', ready: result.rows[0].ready });
   } catch (error) {
@@ -770,6 +804,6 @@ app.post('/api/board/:boardID/start', authenticateToken, async (req, res) => {
 });
 
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Backend API running on http://localhost:${PORT}`);
 });

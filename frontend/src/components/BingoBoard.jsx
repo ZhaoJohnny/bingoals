@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import BingoSquare from './BingoSquare';
 import '../styles/BingoBoard.css';
+import socket from '../socket.js';
 
 function BingoBoard({ title, boardID, status }) {
   const [cells, setCells] = useState(
@@ -9,7 +10,7 @@ function BingoBoard({ title, boardID, status }) {
 
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  
     async function loadBoard() {
       try {
         const res = await fetch(`${import.meta.env.VITE_API_URL}/api/board/${boardID}`, {
@@ -29,15 +30,24 @@ function BingoBoard({ title, boardID, status }) {
     }
 
     
-    
+  
     async function loadEverything() {
       setLoading(true);
       await loadBoard();
       
       setLoading(false);
     }
+  useEffect(() => {  
 
+    socket.on('board-updated', (data) => {
+      if (String(data.boardID) === String(boardID)) {
+        loadEverything();
+      }
+    });
     loadEverything();
+    return () => {
+      socket.off('board-updated');
+    };
   }, [boardID, status]);
   async function handleToggleMarker(index) {
     try {

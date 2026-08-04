@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import '../styles/PlayerList.css';
-
+import socket from '../socket.js';
 function PlayerList({ boardID }) {
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  
     async function loadPlayers() {
       try {
         const res = await fetch(`${import.meta.env.VITE_API_URL}/api/board/${boardID}/players`);
@@ -17,14 +17,16 @@ function PlayerList({ boardID }) {
         setLoading(false);
       }
     }
-
+  useEffect(() => {
     loadPlayers(); // initial fetch
-    // TODO: right now the playerList is refreshed by querying the server every 300ms. This
-    // definitely seems like a brute force way to accomplish what is a simple player list, and could
-    // definitely be refactored to be more efficient later
-    const interval = setInterval(loadPlayers, 300); // then poll every 300ms
-
-    return () => clearInterval(interval); // stop polling on unmount
+    socket.on('join-board', (data) => {
+      if (String(data.boardID) === String(boardID)) {
+      loadPlayers();
+    }
+    });
+    return () => {
+    socket.off('players-updated');
+  };
   }, [boardID]);
 
   if (loading) return <div className="players-list">Loading players…</div>;
