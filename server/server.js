@@ -124,7 +124,7 @@ app.post("/api/register", async (req, res) => {
     const token = jwt.sign(
       { id: user.rows[0].id, email: user.rows[0].email },
       process.env.JWT_SECRET,
-      { expiresIn: '1h' }
+      
     );
     res.json({
       success: true,
@@ -173,7 +173,7 @@ app.post("/api/login", async (req, res) => {
     const token = jwt.sign(
       { id: user.rows[0].id, email: user.rows[0].email },
       process.env.JWT_SECRET,
-      { expiresIn: '1h' }
+
     );
 
     res.json({
@@ -626,6 +626,7 @@ app.post('/api/board/:boardID/changeReady', authenticateToken, async (req, res) 
     );
     io.to(`board-${boardID}`).emit('players-updated', {
        boardID,
+       
       });
 
     res.json({ success: true, message: 'Ready status updated', ready: result.rows[0].ready });

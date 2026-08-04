@@ -20,7 +20,9 @@ function PlayerList({ boardID }) {
   useEffect(() => {
     loadPlayers(); // initial fetch
     socket.on('players-updated', (data) => {
+
       if (String(data.boardID) === String(boardID)) {
+        
         loadPlayers();
     }
     });

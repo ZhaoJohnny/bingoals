@@ -32,6 +32,7 @@ async function handleReadyToggle() {
          },
       });
       const readyData = await res.json();
+      console.log('Ready status toggled:', readyData);
       setReady(readyData.ready);
     } catch (error) {
       console.error('Error toggling ready', error);
