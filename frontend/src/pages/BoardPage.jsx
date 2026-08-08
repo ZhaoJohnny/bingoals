@@ -5,6 +5,7 @@ import LobbyPhase from "../components/Phases/LobbyPhase";
 import BingoBoard from "../components/BingoBoard";
 import BingoButton from "../components/BingoButton";
 import FinishButton from "../components/FinishButton";
+import BoardList from "../components/BoardList";
 import socket from "../socket.js";
 
 function BoardPage() {
