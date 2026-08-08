@@ -375,7 +375,16 @@ app.get('/api/board/:boardID', authenticateToken, async (req, res) => {
       `SELECT * FROM boards WHERE id = $1`,
       [boardID]
     );
-
+    const playerResult = await pool.query(
+      `SELECT * FROM players WHERE board_id = $1 AND user_id = $2`,
+      [boardID, playerID]
+    );
+    if (playerResult.rows.length === 0) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not a player on this board',
+      });
+    }
     if (boardResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
@@ -439,6 +448,14 @@ app.get('/api/board/:boardID/status', authenticateToken, async (req, res) => {
   if (result.rows.length === 0) {
     return res.status(404).json({ success: false, message: 'Board not found' });
   }
+  const playerResult = await pool.query(
+    `SELECT * FROM players WHERE board_id = $1 AND user_id = $2`,
+    [boardID, playerID]
+  );
+  if (playerResult.rows.length === 0) {
+    return res.status(403).json({ success: false, message: 'You are not a player on this board' });
+  }
+  
   res.json({ success: true, status: result.rows[0].status });
   } catch (error) {
     console.error('Error fetching board status:', error);

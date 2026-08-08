@@ -1,16 +1,17 @@
 // pages/BoardPage.jsx
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import LobbyPhase from "../components/Phases/LobbyPhase";
 import BingoBoard from "../components/BingoBoard";
 import BingoButton from "../components/BingoButton";
 import FinishButton from "../components/FinishButton";
-import BoardList from "../components/BoardList";
+
 import socket from "../socket.js";
 
 function BoardPage() {
   const { boardID } = useParams();
   const [status, setStatus] = useState('');
+  const navigate = useNavigate();
   useEffect(() => {
   console.log('Joining socket board:', boardID);
 
@@ -55,12 +56,17 @@ function BoardPage() {
         });
 
         const data = await res.json();
-
+        if (res.status === 403 || res.status === 404) {
+      navigate('/');
+      return;
+    }
         if (data.success) {
           setStatus(data.status);
+        
         }
       } catch (err) {
         console.error('Failed to get board status', err);
+        navigate('/');
       }
     }
 
@@ -122,7 +128,7 @@ function BoardPage() {
         console.log('Board status updated, reloading status:', boardID);
       }
     };
-    loadBoardStatus();
+    loadBoardStatus();    
     socket.on('board-updated', handleBoardStatusUpdate);
     return () => {
       socket.off('board-updated', handleBoardStatusUpdate);
