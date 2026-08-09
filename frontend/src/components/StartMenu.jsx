@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import '../styles/StartMenu.css';
 
 function StartMenu({ }) {
-    const [boardID, setBoardID] = useState('');
+    const [code, setCode] = useState('');
     const navigate = useNavigate();
 
     async function handleCreateClick() {
@@ -28,7 +28,7 @@ function StartMenu({ }) {
     }
   }
     async function handleJoinClick() {
-         if (!boardID) {
+         if (!code) {
             alert('Please enter a board ID');
             return;
         }
@@ -38,6 +38,7 @@ function StartMenu({ }) {
                 headers: {
                     authorization: `Bearer ${localStorage.getItem('token')}`
                 },
+                body: JSON.stringify({ code })
             });
             const data = await res.json();
             if (!data.success) {
@@ -45,7 +46,7 @@ function StartMenu({ }) {
                 console.log(data.message);
                 return;
             }
-            navigate(`/board/${boardID}`);
+            navigate(`/board/${data.boardID}`);
         } catch (error) {
             console.error('Error checking board:', error);
             alert('Something went wrong checking that board ID')
@@ -62,8 +63,8 @@ function StartMenu({ }) {
     <input
       type="text"
       placeholder="Enter Board ID"
-      value={boardID}
-      onChange={(e) => setBoardID(e.target.value)}
+      value={code}
+      onChange={(e) => setCode(e.target.value)}
     />
 
     <button onClick={handleJoinClick}>Join Game</button>

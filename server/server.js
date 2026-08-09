@@ -264,16 +264,23 @@ app.post('/api/create-game', authenticateToken, async (req, res) => {
 
     const boardTitle = title || `${playerID}'s Board`;
 
-    // const boardResult = await client.query(
-    //   `INSERT INTO boards (title, host_id, status) VALUES ($1, $2, 'active') RETURNING id`,
-    //   [boardTitle, userId]
-    // );
-    // Keep in mind that for now it does not randomly generate unique ids, and only does a small range 
-    // TODO: make the board IDs generate unique ids
-    const boardResult = await client.query(
-      `INSERT INTO boards (host_id, status) VALUES ($1, 'lobby') RETURNING id`,
-      [playerID]
+    const code = Math.random().toString(36).substring(2,8).toUpperCase();
+    const existingCode = await client.query(
+      `SELECT id FROM boards WHERE code = $1`,
+      [code]
     );
+    while (existingCode.rows.length > 0) {
+      const newCode = Math.random().toString(36).substring(2,8).toUpperCase();
+      existingCode = await client.query(
+        `SELECT id FROM boards WHERE code = $1`,
+        [newCode]
+      );
+    }
+    const boardResult = await client.query(
+      `INSERT INTO boards (host_id, status, code) VALUES ($1, 'lobby', $2) RETURNING id`,
+      [playerID, code]
+    );
+  
     const boardId = boardResult.rows[0].id;
 
     // 25 empty shared squares
@@ -313,6 +320,7 @@ app.post('/api/board/:boardID/join', authenticateToken, async (req, res) => {
   const { boardID } = req.params;
   const playerID = req.user.id;
   try {
+    
     const boardResult = await pool.query(
       `SELECT * FROM boards WHERE id = $1`,
       [boardID]
@@ -455,7 +463,7 @@ app.get('/api/board/:boardID/status', authenticateToken, async (req, res) => {
   if (playerResult.rows.length === 0) {
     return res.status(403).json({ success: false, message: 'You are not a player on this board' });
   }
-  
+
   res.json({ success: true, status: result.rows[0].status });
   } catch (error) {
     console.error('Error fetching board status:', error);
