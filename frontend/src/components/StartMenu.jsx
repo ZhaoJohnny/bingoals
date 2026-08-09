@@ -38,12 +38,11 @@ function StartMenu({ }) {
             return;
         }
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/board/${boardID}/join`, {
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/board/${code}/join`, {
                 method: 'POST',
                 headers: {
                     authorization: `Bearer ${localStorage.getItem('token')}`
                 },
-                body: JSON.stringify({ code })
             });
             const data = await res.json();
             if (!data.success) {
@@ -51,7 +50,12 @@ function StartMenu({ }) {
                 console.log(data.message);
                 return;
             }
-            navigate(`/board/${data.boardID}`);
+            navigate(`/board/${data.boardID}`, {
+                state: {
+                    playerID: data.player.id,
+                    code: code,
+                },
+            });
         } catch (error) {
             console.error('Error checking board:', error);
             alert('Something went wrong checking that board ID')
