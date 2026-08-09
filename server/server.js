@@ -198,7 +198,7 @@ app.get('/api/boards', authenticateToken, async (req, res) => {
   const playerID = req.user.id;
   try {
     const result = await pool.query(
-      `SELECT boards.id FROM boards JOIN players ON boards.id = players.board_id WHERE players.user_id = $1 ORDER BY boards.created_at DESC `,
+      `SELECT boards.* FROM boards JOIN players ON boards.id = players.board_id WHERE players.user_id = $1 ORDER BY boards.created_at DESC `,
       [playerID]
     );
     res.json({ success: true, boards: result.rows });
