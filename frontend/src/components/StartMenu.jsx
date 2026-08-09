@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import '../styles/StartMenu.css';
 
 function StartMenu({ }) {
-    const [boardID, setBoardID] = useState('');
+    const [code, setCode] = useState('');
     const navigate = useNavigate();
 
     async function handleCreateClick() {
@@ -22,18 +22,23 @@ function StartMenu({ }) {
 
       const data = await response.json();
 
-      navigate(`/board/${data.boardID}`);
+      navigate(`/board/${data.boardID}`, {
+        state: {
+          playerID: data.playerID,
+          code: data.code,
+        },
+      });
     } catch (error) {
       console.error(error);
     }
   }
     async function handleJoinClick() {
-         if (!boardID) {
+         if (!code) {
             alert('Please enter a board ID');
             return;
         }
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/board/${boardID}/join`, {
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/board/${code}/join`, {
                 method: 'POST',
                 headers: {
                     authorization: `Bearer ${localStorage.getItem('token')}`
@@ -45,7 +50,12 @@ function StartMenu({ }) {
                 console.log(data.message);
                 return;
             }
-            navigate(`/board/${boardID}`);
+            navigate(`/board/${data.boardID}`, {
+                state: {
+                    playerID: data.player.id,
+                    code: code,
+                },
+            });
         } catch (error) {
             console.error('Error checking board:', error);
             alert('Something went wrong checking that board ID')
@@ -62,8 +72,8 @@ function StartMenu({ }) {
     <input
       type="text"
       placeholder="Enter Board ID"
-      value={boardID}
-      onChange={(e) => setBoardID(e.target.value)}
+      value={code}
+      onChange={(e) => setCode(e.target.value)}
     />
 
     <button onClick={handleJoinClick}>Join Game</button>

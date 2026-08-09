@@ -264,30 +264,25 @@ app.post('/api/create-game', authenticateToken, async (req, res) => {
 
     const boardTitle = title || `${playerID}'s Board`;
 
-    // const boardResult = await client.query(
-    //   `INSERT INTO boards (title, host_id, status) VALUES ($1, $2, 'active') RETURNING id`,
-    //   [boardTitle, userId]
-    // );
-    // Keep in mind that for now it does not randomly generate unique ids, and only does a small range 
-    // TODO: make the board IDs generate unique ids
-    const boardResult = await client.query(
-      `INSERT INTO boards (host_id, status) VALUES ($1, 'lobby') RETURNING id`,
-      [playerID]
+    const code = Math.random().toString(36).substring(2,8).toUpperCase();
+    const existingCode = await client.query(
+      `SELECT id FROM boards WHERE code = $1`,
+      [code]
     );
+    while (existingCode.rows.length > 0) {
+      const newCode = Math.random().toString(36).substring(2,8).toUpperCase();
+      existingCode = await client.query(
+        `SELECT id FROM boards WHERE code = $1`,
+        [newCode]
+      );
+    }
+    const boardResult = await client.query(
+      `INSERT INTO boards (host_id, status, code) VALUES ($1, 'lobby', $2) RETURNING id, code`,
+      [playerID, code]
+    );
+  
     const boardId = boardResult.rows[0].id;
-
-    // 25 empty shared squares
-    // const valuesSql = [];
-    // const params = [];
-    // for (let i = 0; i < 25; i++) {
-    //   valuesSql.push(`($${params.length + 1}, $${params.length + 2}, '')`);
-    //   params.push(boardId, i);
-    // }
-    // await client.query(
-    //   `INSERT INTO squares (board_id, index, goal) VALUES ${valuesSql.join(', ')}`,
-    //   params
-    // );
-
+    const boardCode = boardResult.rows[0].code;
     // Register the creator as a player on this board
     await client.query(
       `INSERT INTO players (user_id, board_id, ready) VALUES ($1, $2, false)`,
@@ -299,6 +294,7 @@ app.post('/api/create-game', authenticateToken, async (req, res) => {
     res.json({
       success: true,
       boardID: boardId,
+      code: boardCode,
       title: boardTitle, // still returned to the client, just not persisted to the DB yet
     });
   } catch (error) {
@@ -309,14 +305,16 @@ app.post('/api/create-game', authenticateToken, async (req, res) => {
     client.release();
   }
 });
-app.post('/api/board/:boardID/join', authenticateToken, async (req, res) => {
-  const { boardID } = req.params;
+app.post('/api/board/:code/join', authenticateToken, async (req, res) => {
+  const code = req.params.code;
   const playerID = req.user.id;
   try {
+    
     const boardResult = await pool.query(
-      `SELECT * FROM boards WHERE id = $1`,
-      [boardID]
+      `SELECT * FROM boards WHERE code = $1`,
+      [code]
     );
+    const boardID = boardResult.rows[0]?.id;
     if (boardResult.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Board not found' });
     }
@@ -332,7 +330,7 @@ app.post('/api/board/:boardID/join', authenticateToken, async (req, res) => {
       boardID,
       player: result.rows[0]
     });
-    res.json({ success: true, message: 'Successfully joined board', player: result.rows[0] });
+    res.json({ success: true, message: 'Successfully joined board', player: result.rows[0], boardID: boardID });
   } catch (error) {
     console.error('Error joining board:', error);
     res.status(500).json({ success: false, message: 'Failed to join board' });
@@ -419,6 +417,7 @@ app.get('/api/board/:boardID', authenticateToken, async (req, res) => {
       success: true,
       boardID: board.id,
       title: board.title,
+      code: board.code,
       cells: squaresResult.rows.map((sq) => ({
         squareId: sq.id,
         index: sq.index,
@@ -455,7 +454,7 @@ app.get('/api/board/:boardID/status', authenticateToken, async (req, res) => {
   if (playerResult.rows.length === 0) {
     return res.status(403).json({ success: false, message: 'You are not a player on this board' });
   }
-  
+
   res.json({ success: true, status: result.rows[0].status });
   } catch (error) {
     console.error('Error fetching board status:', error);
