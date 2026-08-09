@@ -22,7 +22,12 @@ function StartMenu({ }) {
 
       const data = await response.json();
 
-      navigate(`/board/${data.boardID}`);
+      navigate(`/board/${data.boardID}`, {
+        state: {
+          playerID: data.playerID,
+          code: data.code,
+        },
+      });
     } catch (error) {
       console.error(error);
     }

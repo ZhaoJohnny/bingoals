@@ -277,24 +277,12 @@ app.post('/api/create-game', authenticateToken, async (req, res) => {
       );
     }
     const boardResult = await client.query(
-      `INSERT INTO boards (host_id, status, code) VALUES ($1, 'lobby', $2) RETURNING id`,
+      `INSERT INTO boards (host_id, status, code) VALUES ($1, 'lobby', $2) RETURNING id, code`,
       [playerID, code]
     );
   
     const boardId = boardResult.rows[0].id;
-
-    // 25 empty shared squares
-    // const valuesSql = [];
-    // const params = [];
-    // for (let i = 0; i < 25; i++) {
-    //   valuesSql.push(`($${params.length + 1}, $${params.length + 2}, '')`);
-    //   params.push(boardId, i);
-    // }
-    // await client.query(
-    //   `INSERT INTO squares (board_id, index, goal) VALUES ${valuesSql.join(', ')}`,
-    //   params
-    // );
-
+    const boardCode = boardResult.rows[0].code;
     // Register the creator as a player on this board
     await client.query(
       `INSERT INTO players (user_id, board_id, ready) VALUES ($1, $2, false)`,
@@ -306,6 +294,7 @@ app.post('/api/create-game', authenticateToken, async (req, res) => {
     res.json({
       success: true,
       boardID: boardId,
+      code: boardCode,
       title: boardTitle, // still returned to the client, just not persisted to the DB yet
     });
   } catch (error) {
@@ -317,13 +306,13 @@ app.post('/api/create-game', authenticateToken, async (req, res) => {
   }
 });
 app.post('/api/board/:boardID/join', authenticateToken, async (req, res) => {
-  const { boardID } = req.params;
+  const code = req.body.code;
   const playerID = req.user.id;
   try {
     
     const boardResult = await pool.query(
-      `SELECT * FROM boards WHERE id = $1`,
-      [boardID]
+      `SELECT * FROM boards WHERE code = $1`,
+      [code]
     );
     if (boardResult.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Board not found' });
@@ -427,6 +416,7 @@ app.get('/api/board/:boardID', authenticateToken, async (req, res) => {
       success: true,
       boardID: board.id,
       title: board.title,
+      code: board.code,
       cells: squaresResult.rows.map((sq) => ({
         squareId: sq.id,
         index: sq.index,
