@@ -835,6 +835,36 @@ app.post('/api/board/:boardID/start', authenticateToken, async (req, res) => {
   }
 });
 
+app.post('/api/board/:boardID/kickPlayer/:currentPlayer', authenticateToken, async (req, res) => {
+    const playerID = req.user.id;
+    const {boardID, currentPlayer} = req.params;
+  try {
+    const host = await pool.query(
+      `SELECT host_id FROM boards WHERE id = $1`,
+      [boardID]
+    );
+
+    if (host.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Player not found on this board' });
+    }
+
+    const host_id = host.rows[0].host_id;
+
+    if(playerID != host_id) {
+        return res.status(403).json({ success: false, message: 'Player is not the host' });
+    }
+
+    const result = await pool.query(
+      `DELETE FROM players WHERE user_id = $1 AND board_id = $2`,
+      [currentPlayer, boardID]
+    );
+
+    res.json({ success: true, message: 'Player successfully kicked' });
+  } catch (error) {
+    console.error('Error with ready button', error);
+    res.status(500).json({ success: false, message: 'Failed to update ready status' });
+  }
+});
 
 server.listen(PORT, () => {
   console.log(`Backend API running on http://localhost:${PORT}`);
