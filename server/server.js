@@ -1,11 +1,11 @@
-import express from 'express';
-import cors from 'cors';
-import pg from 'pg';
-import dotenv from 'dotenv';
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
-import http from 'http';
-import { Server } from 'socket.io';
+import express from "express";
+import cors from "cors";
+import pg from "pg";
+import dotenv from "dotenv";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import http from "http";
+import { Server } from "socket.io";
 dotenv.config();
 
 const app = express();
@@ -14,23 +14,23 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: [
-      'http://localhost:5173',
-      'https://bingoalss.vercel.app',
-      process.env.FRONTEND_URL
+      "http://localhost:5173",
+      "https://bingoalss.vercel.app",
+      process.env.FRONTEND_URL,
     ],
-    credentials: true
-  }
+    credentials: true,
+  },
 });
-io.on('connection', (socket) => {
-  console.log('Socket connected:', socket.id);
+io.on("connection", (socket) => {
+  console.log("Socket connected:", socket.id);
 
-    socket.on('join-board', (boardID) => {
+  socket.on("join-board", (boardID) => {
     socket.join(`board-${boardID}`);
     console.log(`Socket ${socket.id} joined board-${boardID}`);
   });
 
-  socket.on('disconnect', () => {
-    console.log('Socket disconnected:', socket.id);
+  socket.on("disconnect", () => {
+    console.log("Socket disconnected:", socket.id);
   });
 });
 
@@ -38,20 +38,22 @@ const PORT = process.env.PORT || 3001;
 
 app.use(express.json());
 
-app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'https://bingoalss.vercel.app',
-    process.env.FRONTEND_URL
-  ],
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "https://bingoalss.vercel.app",
+      process.env.FRONTEND_URL,
+    ],
+    credentials: true,
+  }),
+);
 
 const poolConfig = {
   connectionString: process.env.DATABASE_URL,
 };
 
-if (process.env.NODE_ENV === 'production') {
+if (process.env.NODE_ENV === "production") {
   poolConfig.ssl = {
     rejectUnauthorized: false,
   };
@@ -72,7 +74,7 @@ function authenticateToken(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
+
     req.user = decoded;
 
     next();
@@ -83,8 +85,8 @@ function authenticateToken(req, res, next) {
     });
   }
 }
-app.get('/', (req, res) => {
-  res.send('Server is working');
+app.get("/", (req, res) => {
+  res.send("Server is working");
 });
 app.post("/api/register", async (req, res) => {
   try {
@@ -99,7 +101,7 @@ app.post("/api/register", async (req, res) => {
 
     const existingUser = await pool.query(
       "SELECT id FROM users WHERE email = $1",
-      [email]
+      [email],
     );
 
     if (existingUser.rows.length > 0) {
@@ -115,16 +117,15 @@ app.post("/api/register", async (req, res) => {
       `INSERT INTO users (name, email, password)
        VALUES ($1, $2, $3)
        RETURNING id, name, email, created_at`,
-      [name, email, passwordHash]
+      [name, email, passwordHash],
     );
     const user = await pool.query(
       "SELECT id, name, email, password FROM users WHERE email = $1",
-      [email]
+      [email],
     );
     const token = jwt.sign(
       { id: user.rows[0].id, email: user.rows[0].email },
       process.env.JWT_SECRET,
-      
     );
     res.json({
       success: true,
@@ -152,7 +153,7 @@ app.post("/api/login", async (req, res) => {
 
     const user = await pool.query(
       "SELECT id, name, email, password FROM users WHERE email = $1",
-      [email]
+      [email],
     );
 
     if (user.rows.length === 0) {
@@ -173,7 +174,6 @@ app.post("/api/login", async (req, res) => {
     const token = jwt.sign(
       { id: user.rows[0].id, email: user.rows[0].email },
       process.env.JWT_SECRET,
-
     );
 
     res.json({
@@ -194,102 +194,119 @@ app.post("/api/login", async (req, res) => {
     });
   }
 });
-app.get('/api/boards', authenticateToken, async (req, res) => {
+app.get("/api/boards", authenticateToken, async (req, res) => {
   const playerID = req.user.id;
   try {
     const result = await pool.query(
       `SELECT boards.* FROM boards JOIN players ON boards.id = players.board_id WHERE players.user_id = $1 ORDER BY boards.created_at DESC `,
-      [playerID]
+      [playerID],
     );
     res.json({ success: true, boards: result.rows });
   } catch (error) {
-    console.error('Error fetching boards:', error);
-    res.status(500).json({ success: false, message: 'Failed to fetch boards' });
+    console.error("Error fetching boards:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch boards" });
   }
 });
-app.post('/api/board/:boardID/square/:index/bingo-square', authenticateToken, async (req, res) => {
-  const {content } = req.body;
-  const playerID = req.user.id;
-  const boardID = req.params.boardID;
-  const index = req.params.index;
-  let client;
-  try {
-    client = await pool.connect();
-    const squarePlayerResult = await client.query(
-      `SELECT player_id FROM squares WHERE index = $1 AND board_id = $2`,
-      [index, boardID]
-    );
-    if (squarePlayerResult.rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'Square not assigned to player' });
-    }
-    const squarePlayerID = squarePlayerResult.rows[0].player_id;
-    if (squarePlayerID !== playerID) {
-      return res.status(403).json({ success: false, message: 'You are not the assigned player for this square' });
-    }
-    const result = await client.query(
-      `UPDATE squares SET goal = $1 WHERE board_id = $2 AND index = $3 RETURNING id, goal`,
-      [content, boardID, index]
-    );
+app.post(
+  "/api/board/:boardID/square/:index/bingo-square",
+  authenticateToken,
+  async (req, res) => {
+    const { content } = req.body;
+    const playerID = req.user.id;
+    const boardID = req.params.boardID;
+    const index = req.params.index;
+    let client;
+    try {
+      client = await pool.connect();
+      const squarePlayerResult = await client.query(
+        `SELECT player_id FROM squares WHERE index = $1 AND board_id = $2`,
+        [index, boardID],
+      );
+      if (squarePlayerResult.rows.length === 0) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Square not assigned to player" });
+      }
+      const squarePlayerID = squarePlayerResult.rows[0].player_id;
+      if (squarePlayerID !== playerID) {
+        return res.status(403).json({
+          success: false,
+          message: "You are not the assigned player for this square",
+        });
+      }
+      const result = await client.query(
+        `UPDATE squares SET goal = $1 WHERE board_id = $2 AND index = $3 RETURNING id, goal`,
+        [content, boardID, index],
+      );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'Square not found for that board/index' });
+      if (result.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "Square not found for that board/index",
+        });
+      }
+
+      res.json({
+        success: true,
+        message: "Bingo square saved",
+        square: result.rows[0],
+      });
+      client.query("COMMIT");
+    } catch (error) {
+      client.query("ROLLBACK");
+      console.error("Error saving bingo square:", error);
+      res
+        .status(500)
+        .json({ success: false, message: "Failed to save bingo square" });
+    } finally {
+      client.release();
     }
+  },
+);
 
-    
-    res.json({ success: true, message: 'Bingo square saved', square: result.rows[0] });
-    client.query('COMMIT');
-  } catch (error) {
-    client.query('ROLLBACK');
-    console.error('Error saving bingo square:', error);
-    res.status(500).json({ success: false, message: 'Failed to save bingo square' });
-  }
-  finally {
-    client.release();
-  }
-});
-
-app.post('/api/create-game', authenticateToken, async (req, res) => {
+app.post("/api/create-game", authenticateToken, async (req, res) => {
   const { title } = req.body;
   const playerID = req.user.id;
   const name = req.user.name;
 
   if (!playerID) {
-    return res.status(400).json({ success: false, message: 'playerID is required' });
+    return res
+      .status(400)
+      .json({ success: false, message: "playerID is required" });
   }
-  
+
   const client = await pool.connect();
   try {
-    await client.query('BEGIN');
-
+    await client.query("BEGIN");
 
     const boardTitle = title || `${playerID}'s Board`;
 
-    const code = Math.random().toString(36).substring(2,8).toUpperCase();
+    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
     const existingCode = await client.query(
       `SELECT id FROM boards WHERE code = $1`,
-      [code]
+      [code],
     );
     while (existingCode.rows.length > 0) {
-      const newCode = Math.random().toString(36).substring(2,8).toUpperCase();
+      const newCode = Math.random().toString(36).substring(2, 8).toUpperCase();
       existingCode = await client.query(
         `SELECT id FROM boards WHERE code = $1`,
-        [newCode]
+        [newCode],
       );
     }
     const boardResult = await client.query(
       `INSERT INTO boards (host_id, status, code) VALUES ($1, 'lobby', $2) RETURNING id, code`,
-      [playerID, code]
+      [playerID, code],
     );
-  
+
     const boardId = boardResult.rows[0].id;
     const boardCode = boardResult.rows[0].code;
     // Register the creator as a player on this board
     await client.query(
       `INSERT INTO players (user_id, board_id, ready) VALUES ($1, $2, false)`,
-      [playerID, boardId]
+      [playerID, boardId],
     );
 
-    await client.query('COMMIT');
+    await client.query("COMMIT");
 
     res.json({
       success: true,
@@ -298,98 +315,109 @@ app.post('/api/create-game', authenticateToken, async (req, res) => {
       title: boardTitle, // still returned to the client, just not persisted to the DB yet
     });
   } catch (error) {
-    await client.query('ROLLBACK');
-    console.error('Error creating game:', error);
-    res.status(500).json({ success: false, message: 'Failed to create game' });
+    await client.query("ROLLBACK");
+    console.error("Error creating game:", error);
+    res.status(500).json({ success: false, message: "Failed to create game" });
   } finally {
     client.release();
   }
 });
-app.post('/api/board/:code/join', authenticateToken, async (req, res) => {
+app.post("/api/board/:code/join", authenticateToken, async (req, res) => {
   const code = req.params.code;
   const playerID = req.user.id;
   try {
-    
     const boardResult = await pool.query(
       `SELECT * FROM boards WHERE code = $1`,
-      [code]
+      [code],
     );
     const boardID = boardResult.rows[0]?.id;
     if (boardResult.rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'Board not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: "Board not found" });
     }
     const status = boardResult.rows[0].status;
-    if (status !== 'lobby') {
-      return res.status(400).json({ success: false, message: 'Cannot join a game that has already started' });
+    if (status !== "lobby") {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot join a game that has already started",
+      });
     }
     const result = await pool.query(
       `INSERT INTO players (user_id, board_id, ready) VALUES ($1, $2, false) ON CONFLICT (user_id, board_id) DO NOTHING RETURNING *`,
-      [playerID, boardID]
+      [playerID, boardID],
     );
-    io.to(`board-${boardID}`).emit('players-updated', {
+    io.to(`board-${boardID}`).emit("players-updated", {
       boardID,
-      player: result.rows[0]
+      player: result.rows[0],
     });
-    res.json({ success: true, message: 'Successfully joined board', player: result.rows[0], boardID: boardID });
+    res.json({
+      success: true,
+      message: "Successfully joined board",
+      player: result.rows[0],
+      boardID: boardID,
+    });
   } catch (error) {
-    console.error('Error joining board:', error);
-    res.status(500).json({ success: false, message: 'Failed to join board' });
+    console.error("Error joining board:", error);
+    res.status(500).json({ success: false, message: "Failed to join board" });
   }
 });
 
-app.put('/api/board/:boardID/finish-creation', authenticateToken, async (req, res) => {
-  const {boardID} = req.params;
-  const playerID = req.user.id;
-  try{
-    const result = await pool.query(
-      `UPDATE boards SET status = 'playing' WHERE id = $1`,
-      [boardID]
-    )
-    io.to(`board-${boardID}`).emit('board-updated', {
-      boardID,
-    });
-    return res.json({
-        success: true,
-        message: 'Board changed to playing',
-        status: 'playing'
+app.put(
+  "/api/board/:boardID/finish-creation",
+  authenticateToken,
+  async (req, res) => {
+    const { boardID } = req.params;
+    const playerID = req.user.id;
+    try {
+      const result = await pool.query(
+        `UPDATE boards SET status = 'playing' WHERE id = $1`,
+        [boardID],
+      );
+      io.to(`board-${boardID}`).emit("board-updated", {
+        boardID,
       });
-  }
-  catch(error){
-    console.error('Error fetching board:', error);
+      return res.json({
+        success: true,
+        message: "Board changed to playing",
+        status: "playing",
+      });
+    } catch (error) {
+      console.error("Error fetching board:", error);
 
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch board',
-    });
-  }
-});
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch board",
+      });
+    }
+  },
+);
 
-app.get('/api/board/:boardID', authenticateToken, async (req, res) => {
+app.get("/api/board/:boardID", authenticateToken, async (req, res) => {
   const { boardID } = req.params;
   const playerID = req.user.id;
 
   try {
-    const boardResult = await pool.query(
-      `SELECT * FROM boards WHERE id = $1`,
-      [boardID]
-    );
+    const boardResult = await pool.query(`SELECT * FROM boards WHERE id = $1`, [
+      boardID,
+    ]);
     const playerResult = await pool.query(
       `SELECT * FROM players WHERE board_id = $1 AND user_id = $2`,
-      [boardID, playerID]
+      [boardID, playerID],
     );
     if (playerResult.rows.length === 0) {
       return res.status(403).json({
         success: false,
-        message: 'You are not a player on this board',
+        message: "You are not a player on this board",
       });
     }
     if (boardResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: 'Board not found',
+        message: "Board not found",
       });
     }
-    
+
     const board = boardResult.rows[0];
 
     const squaresResult = await pool.query(
@@ -410,7 +438,7 @@ app.get('/api/board/:boardID', authenticateToken, async (req, res) => {
       WHERE squares.board_id = $1
       ORDER BY squares.index ASC
       `,
-      [boardID, playerID]
+      [boardID, playerID],
     );
 
     res.json({
@@ -426,169 +454,174 @@ app.get('/api/board/:boardID', authenticateToken, async (req, res) => {
       })),
     });
   } catch (error) {
-    console.error('Error fetching board:', error);
+    console.error("Error fetching board:", error);
 
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch board',
+      message: "Failed to fetch board",
     });
   }
 });
 
-app.get('/api/board/:boardID/status', authenticateToken, async (req, res) => {
+app.get("/api/board/:boardID/status", authenticateToken, async (req, res) => {
   const { boardID } = req.params;
   const playerID = req.user.id;
   try {
-    
-  const result = await pool.query(
-    `SELECT status FROM boards WHERE id = $1`,
-    [boardID]
-  );
-  if (result.rows.length === 0) {
-    return res.status(404).json({ success: false, message: 'Board not found' });
-  }
-  const playerResult = await pool.query(
-    `SELECT * FROM players WHERE board_id = $1 AND user_id = $2`,
-    [boardID, playerID]
-  );
-  if (playerResult.rows.length === 0) {
-    return res.status(403).json({ success: false, message: 'You are not a player on this board' });
-  }
+    const result = await pool.query(`SELECT status FROM boards WHERE id = $1`, [
+      boardID,
+    ]);
+    if (result.rows.length === 0) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Board not found" });
+    }
+    const playerResult = await pool.query(
+      `SELECT * FROM players WHERE board_id = $1 AND user_id = $2`,
+      [boardID, playerID],
+    );
+    if (playerResult.rows.length === 0) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not a player on this board",
+      });
+    }
 
-  res.json({ success: true, status: result.rows[0].status });
+    res.json({ success: true, status: result.rows[0].status });
   } catch (error) {
-    console.error('Error fetching board status:', error);
-    res.status(500).json({ success: false, message: 'Failed to fetch board status' });
+    console.error("Error fetching board status:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch board status" });
   }
 });
 
-app.put('/api/board/:boardID/bingo', authenticateToken, async (req, res) => {
+app.put("/api/board/:boardID/bingo", authenticateToken, async (req, res) => {
   const { boardID } = req.params;
   const playerID = req.user.id;
-    let client;
+  let client;
   try {
     client = await pool.connect();
-    client.query('BEGIN');
+    client.query("BEGIN");
     const squaresCountResult = await client.query(
       `SELECT COUNT(*) FROM squares WHERE board_id = $1`,
-      [boardID]
+      [boardID],
     );
     const squaresCount = parseInt(squaresCountResult.rows[0].count, 10);
     const markerCountResult = await client.query(
       `SELECT COUNT(*) FROM marker WHERE board_id = $1 AND player_id = $2`,
-      [boardID, playerID]
+      [boardID, playerID],
     );
     const markerCount = parseInt(markerCountResult.rows[0].count, 10);
-    console.log(`Player ${playerID} has marked ${markerCount} out of ${squaresCount} squares on board ${boardID}`);
+    console.log(
+      `Player ${playerID} has marked ${markerCount} out of ${squaresCount} squares on board ${boardID}`,
+    );
     if (markerCount < squaresCount) {
       return res.status(400).json({
         success: false,
-        message: 'Player has not marked all squares',
+        message: "Player has not marked all squares",
       });
     }
-    
-      const endGameResult = await client.query(
-        `UPDATE boards SET status = 'ended', winner_id = $1, ended_at = NOW() WHERE id = $2 RETURNING id, status, winner_id, ended_at`,
-        [playerID, boardID]
-      );
-      if (endGameResult.rows.length === 0) {
+
+    const endGameResult = await client.query(
+      `UPDATE boards SET status = 'ended', winner_id = $1, ended_at = NOW() WHERE id = $2 RETURNING id, status, winner_id, ended_at`,
+      [playerID, boardID],
+    );
+    if (endGameResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: 'Board not found',
+        message: "Board not found",
       });
     }
-      const winnerID = endGameResult.rows[0].winner_id;
-    
-    
-    await client.query('COMMIT');
-    io.to(`board-${boardID}`).emit('board-updated', { boardID });
-  
+    const winnerID = endGameResult.rows[0].winner_id;
+
+    await client.query("COMMIT");
+    io.to(`board-${boardID}`).emit("board-updated", { boardID });
+
     return res.json({
       success: true,
-      message: winnerID ? 'Game ended with a winner' : 'Game ended because time ran out',
+      message: winnerID
+        ? "Game ended with a winner"
+        : "Game ended because time ran out",
       board: endGameResult.rows[0],
       status: endGameResult.rows[0].status,
     });
-    
-  }catch (error) {
-    await client.query('ROLLBACK');
-    console.error('End game error:', error);
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("End game error:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to end game',
+      message: "Failed to end game",
     });
-  }
-  finally {
+  } finally {
     client.release();
   }
 });
-app.post('/api/board/:boardID/square/:index/toggle-marker', authenticateToken, async (req, res) => {
-  const { boardID } = req.params;
-  const { index } = req.params; 
-  const playerID = req.user.id;
-  let client;
-  try{
-    client = await pool.connect();
-  const squareResult = await client.query(
-      "SELECT id FROM squares WHERE board_id = $1 AND index = $2",
-      [boardID, index]
-    );
+app.post(
+  "/api/board/:boardID/square/:index/toggle-marker",
+  authenticateToken,
+  async (req, res) => {
+    const { boardID } = req.params;
+    const { index } = req.params;
+    const playerID = req.user.id;
+    let client;
+    try {
+      client = await pool.connect();
+      const squareResult = await client.query(
+        "SELECT id FROM squares WHERE board_id = $1 AND index = $2",
+        [boardID, index],
+      );
 
-  if (squareResult.rows.length === 0) {
-    return res.status(404).json({
-      success: false,
-      message: "Square not found",
-    });
-  } 
+      if (squareResult.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "Square not found",
+        });
+      }
 
-  const squareID = squareResult.rows[0].id;
+      const squareID = squareResult.rows[0].id;
 
-  const existingMarker = await client.query(
-      `SELECT id FROM marker
+      const existingMarker = await client.query(
+        `SELECT id FROM marker
        WHERE player_id = $1 AND square_id = $2 AND board_id = $3`,
-      [playerID, squareID, boardID]
-    ); 
+        [playerID, squareID, boardID],
+      );
 
-  if (existingMarker.rows.length > 0) {
-    await client.query(
-      `DELETE FROM marker WHERE id = $1`,
-      [existingMarker.rows[0].id]
-    );
-    return res.json({
-      success: true,
-      message: "Marker removed",
-    });
-  } else {
+      if (existingMarker.rows.length > 0) {
+        await client.query(`DELETE FROM marker WHERE id = $1`, [
+          existingMarker.rows[0].id,
+        ]);
+        return res.json({
+          success: true,
+          message: "Marker removed",
+        });
+      } else {
+        await client.query(
+          `INSERT INTO marker (player_id, square_id, board_id) VALUES ($1, $2, $3)`,
+          [playerID, squareID, boardID],
+        );
+        return res.json({
+          success: true,
+          message: "Marker added",
+          marked: true,
+        });
+      }
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      console.error("Toggle marker error:", error);
 
-    await client.query(
-      `INSERT INTO marker (player_id, square_id, board_id) VALUES ($1, $2, $3)`,
-      [playerID, squareID, boardID]
-    );
-    return res.json({
-      success: true,
-      message: "Marker added",
-      marked: true,
-    });
-  }
-  await client.query('COMMIT');
+      res.status(500).json({
+        success: false,
+        message: "Server error toggling marker",
+        marked: false,
+      });
+    } finally {
+      client.release();
+    }
+  },
+);
 
-  
-  } catch (error) { 
-    await client.query('ROLLBACK');
-    console.error("Toggle marker error:", error);
-
-    res.status(500).json({
-      success: false,
-      message: "Server error toggling marker",
-      marked: false,
-    });
-  }
-  finally {
-    client.release();
-  }
-});
-
-app.get('/api/board/:boardID/players', async (req, res) => {
+app.get("/api/board/:boardID/players", async (req, res) => {
   const { boardID } = req.params;
 
   try {
@@ -598,73 +631,126 @@ app.get('/api/board/:boardID/players', async (req, res) => {
        JOIN users
        ON players.user_id = users.id
        WHERE players.board_id = $1`,
-      [boardID]
+      [boardID],
     );
 
     res.json({
       success: true,
-      players: result.rows.map(r => ({ id: r.id, name: r.name, ready: r.ready })),
+      players: result.rows.map((r) => ({
+        id: r.id,
+        name: r.name,
+        ready: r.ready,
+      })),
     });
   } catch (error) {
-    console.error('Error fetching players', error);
-    res.status(500).json({ success: false, message: 'Failed to fetch players' });
+    console.error("Error fetching players", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch players" });
   }
 });
 
-app.get('/api/board/:boardID/getReady', authenticateToken, async (req, res) => {
-    const playerID = req.user.id;
-    const {boardID} = req.params;
-    try{
-        const readyStatus = await pool.query(
-            'SELECT ready FROM players WHERE user_id = $1 AND board_id = $2',
-            [playerID, boardID]
-        );
-
-        if (readyStatus.rows.length === 0) {
-            return res.status(404).json({ success: false, message: 'Player not found on this board' });
-        }
-
-       res.json({ success: true, message: 'Ready status updated', ready: readyStatus.rows[0].ready });
-
-
-    } catch (error) {
-    console.error('Error with getting ready', error);
-    res.status(500).json({ success: false, message: 'Failed to get ready status' });
-  }
-});
-
-app.post('/api/board/:boardID/changeReady', authenticateToken, async (req, res) => {
-    const playerID = req.user.id;
-    const {boardID} = req.params;
+app.get("/api/board/:boardID/getReady", authenticateToken, async (req, res) => {
+  const playerID = req.user.id;
+  const { boardID } = req.params;
   try {
-    const current = await pool.query(
-      `SELECT ready FROM players WHERE user_id = $1 AND board_id = $2`,
-      [playerID, boardID]
+    const readyStatus = await pool.query(
+      "SELECT ready FROM players WHERE user_id = $1 AND board_id = $2",
+      [playerID, boardID],
     );
 
-    if (current.rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'Player not found on this board' });
+    if (readyStatus.rows.length === 0) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Player not found on this board" });
     }
 
-    const newReadyState = !current.rows[0].ready;
-
-    const result = await pool.query(
-      `UPDATE players SET ready = $1 WHERE user_id = $2 AND board_id = $3 RETURNING ready`,
-      [newReadyState, playerID, boardID]
-    );
-    io.to(`board-${boardID}`).emit('players-updated', {
-       boardID,
-       
-      });
-
-    res.json({ success: true, message: 'Ready status updated', ready: result.rows[0].ready });
+    res.json({
+      success: true,
+      message: "Ready status updated",
+      ready: readyStatus.rows[0].ready,
+    });
   } catch (error) {
-    console.error('Error with ready button', error);
-    res.status(500).json({ success: false, message: 'Failed to update ready status' });
+    console.error("Error with getting ready", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to get ready status" });
   }
 });
 
-app.post('/api/board/:boardID/start', authenticateToken, async (req, res) => {
+app.post(
+  "/api/board/:boardID/leaveGame",
+  authenticateToken,
+  async (req, res) => {
+    const playerID = req.user.id;
+    const { boardID } = req.params;
+    try {
+      const response = await pool.query(
+        "DELETE FROM players WHERE user_id = $1 AND board_id = $2 RETURNING *",
+        [playerID, boardID],
+      );
+
+      if (response.rows.length == 0) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Player did not leave the board" });
+      }
+      io.to(`board-${boardID}`).emit("players-updated", { boardID });
+
+      return res.json({ success: true, message: "Left the game" });
+    } catch (error) {
+      console.error("error leaving the game", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to remove player from board",
+      });
+    }
+  },
+);
+
+app.post(
+  "/api/board/:boardID/changeReady",
+  authenticateToken,
+  async (req, res) => {
+    const playerID = req.user.id;
+    const { boardID } = req.params;
+    try {
+      const current = await pool.query(
+        `SELECT ready FROM players WHERE user_id = $1 AND board_id = $2`,
+        [playerID, boardID],
+      );
+
+      if (current.rows.length === 0) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Player not found on this board" });
+      }
+
+      const newReadyState = !current.rows[0].ready;
+
+      const result = await pool.query(
+        `UPDATE players SET ready = $1 WHERE user_id = $2 AND board_id = $3 RETURNING ready`,
+        [newReadyState, playerID, boardID],
+      );
+      io.to(`board-${boardID}`).emit("players-updated", {
+        boardID,
+      });
+
+      res.json({
+        success: true,
+        message: "Ready status updated",
+        ready: result.rows[0].ready,
+      });
+    } catch (error) {
+      console.error("Error with ready button", error);
+      res
+        .status(500)
+        .json({ success: false, message: "Failed to update ready status" });
+    }
+  },
+);
+
+app.post("/api/board/:boardID/start", authenticateToken, async (req, res) => {
   const userID = req.user.id;
   const { boardID } = req.params;
   const playerID = req.user.id;
@@ -676,78 +762,78 @@ app.post('/api/board/:boardID/start', authenticateToken, async (req, res) => {
 
   try {
     client = await pool.connect();
-    await client.query('BEGIN');
+    await client.query("BEGIN");
 
     // 1. Check board exists and current user is host
     const boardResult = await client.query(
       `SELECT id, host_id, status FROM boards WHERE id = $1`,
-      [boardID]
+      [boardID],
     );
 
     if (boardResult.rows.length === 0) {
-      await client.query('ROLLBACK');
+      await client.query("ROLLBACK");
       return res.status(404).json({
         success: false,
-        message: 'Board not found',
+        message: "Board not found",
       });
     }
     if (boardResult.rows[0].host_id !== playerID) {
-      await client.query('ROLLBACK');
+      await client.query("ROLLBACK");
       return res.status(403).json({
         success: false,
-        message: 'You are not the host of this board',
+        message: "You are not the host of this board",
       });
     }
 
     const board = boardResult.rows[0];
 
     if (Number(userID) !== Number(board.host_id)) {
-      await client.query('ROLLBACK');
+      await client.query("ROLLBACK");
       return res.status(403).json({
         success: false,
-        message: 'Player is not the host',
+        message: "Player is not the host",
       });
     }
 
     // Optional: prevent starting twice
-    if (board.status === 'playing' || board.status === 'ended') {
-      await client.query('ROLLBACK');
+    if (board.status === "playing" || board.status === "ended") {
+      await client.query("ROLLBACK");
       return res.status(400).json({
         success: false,
-        message: 'Game has already started or ended',
+        message: "Game has already started or ended",
       });
     }
 
     // 2. Check all players are ready
     const playersResult = await client.query(
       `SELECT user_id, ready FROM players WHERE board_id = $1`,
-      [boardID]
+      [boardID],
     );
 
     const players = playersResult.rows;
 
     if (players.length === 0) {
-      await client.query('ROLLBACK');
+      await client.query("ROLLBACK");
       return res.status(400).json({
         success: false,
-        message: 'No players found on this board',
+        message: "No players found on this board",
       });
     }
 
     const someoneNotReady = players.some((p) => p.ready === false);
 
     if (someoneNotReady) {
-      await client.query('ROLLBACK');
+      await client.query("ROLLBACK");
       return res.status(400).json({
         success: false,
-        message: 'Not all players are ready',
+        message: "Not all players are ready",
       });
     }
 
     // 3. Check existing squares
     let squaresResult = await client.query(
       `SELECT id, index FROM squares WHERE board_id = $1 ORDER BY index ASC`,
-      [boardID]
+      [boardID],
     );
 
     let squares = squaresResult.rows;
@@ -764,14 +850,14 @@ app.post('/api/board/:boardID/start', authenticateToken, async (req, res) => {
 
       await client.query(
         `INSERT INTO squares (board_id, index, goal)
-         VALUES ${valuesSql.join(', ')}`,
-        params
+         VALUES ${valuesSql.join(", ")}`,
+        params,
       );
 
       // Re-fetch the newly created squares
       squaresResult = await client.query(
         `SELECT id, index FROM squares WHERE board_id = $1 ORDER BY index ASC`,
-        [boardID]
+        [boardID],
       );
 
       squares = squaresResult.rows;
@@ -779,7 +865,7 @@ app.post('/api/board/:boardID/start', authenticateToken, async (req, res) => {
 
     // 5. If something is wrong, stop
     if (squares.length !== 25) {
-      await client.query('ROLLBACK');
+      await client.query("ROLLBACK");
       return res.status(400).json({
         success: false,
         message: `Expected 25 squares, found ${squares.length}`,
@@ -794,37 +880,37 @@ app.post('/api/board/:boardID/start', authenticateToken, async (req, res) => {
       const square = shuffledSquares[i];
       const player = shuffledPlayers[i % shuffledPlayers.length];
 
-      await client.query(
-        `UPDATE squares SET player_id = $1 WHERE id = $2`,
-        [player.user_id, square.id]
-      );
+      await client.query(`UPDATE squares SET player_id = $1 WHERE id = $2`, [
+        player.user_id,
+        square.id,
+      ]);
     }
 
     // 7. Change board status
-    await client.query(
-      `UPDATE boards SET status = 'creation' WHERE id = $1`,
-      [boardID]
-    );
+    await client.query(`UPDATE boards SET status = 'creation' WHERE id = $1`, [
+      boardID,
+    ]);
 
-    await client.query('COMMIT');
-    io.to(`board-${boardID}`).emit('board-updated', {
+    await client.query("COMMIT");
+    io.to(`board-${boardID}`).emit("board-updated", {
       boardID,
     });
     return res.json({
       success: true,
-      message: 'Game started, 25 squares created if needed, and squares assigned',
-      status: 'creation',
+      message:
+        "Game started, 25 squares created if needed, and squares assigned",
+      status: "creation",
     });
   } catch (error) {
     if (client) {
-      await client.query('ROLLBACK');
+      await client.query("ROLLBACK");
     }
 
-    console.error('Error with the start button:', error);
+    console.error("Error with the start button:", error);
 
     return res.status(500).json({
       success: false,
-      message: 'Failed to start game',
+      message: "Failed to start game",
       error: error.message,
     });
   } finally {
@@ -833,7 +919,6 @@ app.post('/api/board/:boardID/start', authenticateToken, async (req, res) => {
     }
   }
 });
-
 
 server.listen(PORT, () => {
   console.log(`Backend API running on http://localhost:${PORT}`);

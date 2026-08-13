@@ -2,6 +2,7 @@ import PlayerList from "../PlayerList";
 import ReadyButton from "../ReadyButton";
 import "../../styles/LobbyPhase.css";
 import StartButton from "../StartButton";
+import LeaveButton from "../LeaveButton";
 
 function LobbyPhase({ boardID, onStart, code }) {
   return (
@@ -18,6 +19,9 @@ function LobbyPhase({ boardID, onStart, code }) {
       </div>
       <div className="lobby-bottom">
         <StartButton boardID={boardID} onStart={onStart}/>
+      </div>
+      <div className="leave-button">
+        <LeaveButton boardID={boardID}/>
       </div>
     </div>
   );
