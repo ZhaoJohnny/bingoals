@@ -46,7 +46,6 @@ function StartMenuPage() {
   return <StartMenu onCreate={handleCreateGame} onJoin={handleJoinGame} />;
 }
 
-
 function App() {
   return (
     <div className="app">
