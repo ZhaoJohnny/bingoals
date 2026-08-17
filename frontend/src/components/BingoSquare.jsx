@@ -5,6 +5,7 @@ function BingoSquare({ content, boardID, index, status, marked, onToggleMarker, 
   const [text, setText] = useState(content || '');
   const [owner, setOwner] = useState(initialOwner || null);
   const playerID = JSON.parse(localStorage.getItem('user'))?.id;
+  const isOwner = Number(owner) === Number(playerID);
   useEffect(() => {
     setText(content || '');
     setOwner(owner || null);
@@ -54,10 +55,24 @@ function BingoSquare({ content, boardID, index, status, marked, onToggleMarker, 
       </button>
     );
   }
+  if (status === 'ended') {
+    return (
+      <div className="bingo-square">
+        {text}
+      </div>
+    );
+  }
+  if (status === 'creation' && !isOwner) {
+    return (
+      <div className="bingo-square unowned">
+        {text || ''}
+      </div>
+    );
+  }
 
   return (
     <input
-      className={owner === playerID ? 'bingo-square owned' : 'bingo-square'}
+      className="bingo-square owned"
       value={text}
       onChange={(e) => setText(e.target.value)}
       onKeyDown={handleKeyDown}
