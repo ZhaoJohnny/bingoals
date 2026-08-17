@@ -266,7 +266,6 @@ app.post(
         success: true,
         message: "Bingo square saved",
         square: result.rows[0],
-
       });
       client.query("COMMIT");
     } catch (error) {
@@ -386,8 +385,85 @@ app.put(
   async (req, res) => {
     const { boardID } = req.params;
     const playerID = req.user.id;
+    let client;
     try {
-      const result = await pool.query(
+      client = await pool.connect();
+      await client.query("BEGIN");
+
+      // 1. Check board exists and current user is host
+      const boardResult = await client.query(
+        `SELECT id, host_id, status FROM boards WHERE id = $1`,
+        [boardID],
+      );
+
+      if (boardResult.rows.length === 0) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({
+          success: false,
+          message: "Board not found",
+        });
+      }
+      if (boardResult.rows[0].host_id !== playerID) {
+        await client.query("ROLLBACK");
+        return res.status(403).json({
+          success: false,
+          message: "You are not the host of this board",
+        });
+      }
+
+      // 2. Check all players are ready
+      const playersResult = await client.query(
+        `SELECT user_id, ready FROM players WHERE board_id = $1`,
+        [boardID],
+      );
+
+      const players = playersResult.rows;
+
+      if (players.length === 0) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({
+          success: false,
+          message: "No players found on this board",
+        });
+      }
+
+      const someoneNotReady = players.some((p) => p.ready === false);
+
+      if (someoneNotReady) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({
+          success: false,
+          message: "Not all players are ready",
+        });
+      }
+
+      // 3. Check all squares are filled
+      let squaresResult = await client.query(
+        `SELECT id, index, goal FROM squares WHERE board_id = $1 ORDER BY index ASC`,
+        [boardID],
+      );
+
+      let squares = squaresResult.rows;
+
+      if (squares.length == 0) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({
+          success: false,
+          message: "Squares do not exist",
+        });
+      }
+
+      for (let i = 0; i < squares.length; i++) {
+        if (!squares[i].goal || squares[i].goal.trim() === "") {
+          await client.query("ROLLBACK");
+          return res.status(400).json({
+            success: false,
+            message: `Square at index ${squares[i].index} is missing text`,
+          });
+        }
+      }
+
+      const result = await client.query(
         `UPDATE boards SET status = 'playing' WHERE id = $1`,
         [boardID],
       );
