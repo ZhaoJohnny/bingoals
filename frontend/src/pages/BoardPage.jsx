@@ -1,6 +1,6 @@
 // pages/BoardPage.jsx
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import LobbyPhase from "../components/Phases/LobbyPhase";
 import BingoBoard from "../components/BingoBoard";
 import BingoButton from "../components/BingoButton";
@@ -15,6 +15,8 @@ function BoardPage() {
   const navigate = useNavigate();
   const myPlayerID = getPlayerIDFromToken();
 
+  const location = useLocation();
+  const code = location.state?.code;
   useEffect(() => {
     console.log("Joining socket board:", boardID);
 
@@ -166,14 +168,16 @@ function BoardPage() {
     };
   }, [boardID, status]);
 
-  if (status === "lobby") {
-    return <LobbyPhase boardID={boardID} onStart={onStart} />;
+  if (status === 'lobby') {
+    return (
+      <LobbyPhase boardID={boardID} onStart = {onStart} code={code}/>
+    );
   }
   if (status === "creation") {
     return (
       <div>
-        <BingoBoard title="BOARD NAME" boardID={boardID} status={status} />
-        <FinishButton onFinish={onFinish} />
+      <BingoBoard title="BOARD NAME" boardID={boardID} status={status}  />
+      <FinishButton onFinish={onFinish}/>
       </div>
     );
   }

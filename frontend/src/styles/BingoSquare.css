@@ -16,6 +16,9 @@
   padding: 8px;
   margin: 0;
 }
+.bingo-square.owned {
+  background-color: red;
+}
 .bingo-square.marked {
   background-color: lightgreen;
   text-decoration: line-through;

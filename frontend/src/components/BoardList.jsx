@@ -27,8 +27,13 @@ function BoardList() {
     useEffect(() => {
         loadBoards();
     }, []);
-    async function handleJoinGame(boardID) {
-       navigate(`/board/${boardID}`);
+    async function handleJoinGame(board) {
+       navigate(`/board/${board.id}`, {
+            state: {
+                code: board.code,
+            },
+        }
+       );
     }
 
     return (
@@ -38,7 +43,7 @@ function BoardList() {
                 {boards.map((board) => (
                     <li key={board.id}>
                         {board.id}: {board.title}
-                        <button onClick={() => handleJoinGame(board.id)}>Join Game</button>
+                        <button onClick={() => handleJoinGame(board)}>Join Game</button>
                     </li>
                 ))}
             </ul>

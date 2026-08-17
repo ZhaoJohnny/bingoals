@@ -56,7 +56,8 @@ CREATE TABLE public.boards (
     ended_at timestamp without time zone,
     winner_id integer,
     host_id integer,
-    title character varying(255)
+    title character varying(255),
+    code character varying(255)
 );
 
 

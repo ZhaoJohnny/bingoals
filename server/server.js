@@ -198,7 +198,7 @@ app.get("/api/boards", authenticateToken, async (req, res) => {
   const playerID = req.user.id;
   try {
     const result = await pool.query(
-      `SELECT boards.id FROM boards JOIN players ON boards.id = players.board_id WHERE players.user_id = $1 ORDER BY boards.created_at DESC `,
+      `SELECT boards.* FROM boards JOIN players ON boards.id = players.board_id WHERE players.user_id = $1 ORDER BY boards.created_at DESC `,
       [playerID],
     );
     res.json({ success: true, boards: result.rows });
@@ -229,12 +229,26 @@ app.post(
       }
       const squarePlayerID = squarePlayerResult.rows[0].player_id;
       if (squarePlayerID !== playerID) {
+        return res.status(403).json({
+          success: false,
+          message: "You are not the assigned player for this square",
+        });
+      }
+      const boardStatusResult = await client.query(
+        `SELECT status FROM boards WHERE id = $1`,
+        [boardID],
+      );
+      if (boardStatusResult.rows.length === 0) {
         return res
-          .status(403)
-          .json({
-            success: false,
-            message: "You are not the assigned player for this square",
-          });
+          .status(404)
+          .json({ success: false, message: "Board not found" });
+      }
+      const boardStatus = boardStatusResult.rows[0].status;
+      if (boardStatus !== "creation") {
+        return res.status(400).json({
+          success: false,
+          message: "Cannot edit square when board is not in creation status",
+        });
       }
       const result = await client.query(
         `UPDATE squares SET goal = $1 WHERE board_id = $2 AND index = $3 RETURNING id, goal`,
@@ -242,18 +256,17 @@ app.post(
       );
 
       if (result.rows.length === 0) {
-        return res
-          .status(404)
-          .json({
-            success: false,
-            message: "Square not found for that board/index",
-          });
+        return res.status(404).json({
+          success: false,
+          message: "Square not found for that board/index",
+        });
       }
 
       res.json({
         success: true,
         message: "Bingo square saved",
         square: result.rows[0],
+
       });
       client.query("COMMIT");
     } catch (error) {
@@ -285,30 +298,25 @@ app.post("/api/create-game", authenticateToken, async (req, res) => {
 
     const boardTitle = title || `${playerID}'s Board`;
 
-    // const boardResult = await client.query(
-    //   `INSERT INTO boards (title, host_id, status) VALUES ($1, $2, 'active') RETURNING id`,
-    //   [boardTitle, userId]
-    // );
-    // Keep in mind that for now it does not randomly generate unique ids, and only does a small range
-    // TODO: make the board IDs generate unique ids
-    const boardResult = await client.query(
-      `INSERT INTO boards (host_id, status) VALUES ($1, 'lobby') RETURNING id`,
-      [playerID],
+    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const existingCode = await client.query(
+      `SELECT id FROM boards WHERE code = $1`,
+      [code],
     );
+    while (existingCode.rows.length > 0) {
+      const newCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      existingCode = await client.query(
+        `SELECT id FROM boards WHERE code = $1`,
+        [newCode],
+      );
+    }
+    const boardResult = await client.query(
+      `INSERT INTO boards (host_id, status, code) VALUES ($1, 'lobby', $2) RETURNING id, code`,
+      [playerID, code],
+    );
+
     const boardId = boardResult.rows[0].id;
-
-    // 25 empty shared squares
-    // const valuesSql = [];
-    // const params = [];
-    // for (let i = 0; i < 25; i++) {
-    //   valuesSql.push(`($${params.length + 1}, $${params.length + 2}, '')`);
-    //   params.push(boardId, i);
-    // }
-    // await client.query(
-    //   `INSERT INTO squares (board_id, index, goal) VALUES ${valuesSql.join(', ')}`,
-    //   params
-    // );
-
+    const boardCode = boardResult.rows[0].code;
     // Register the creator as a player on this board
     await client.query(
       `INSERT INTO players (user_id, board_id, ready) VALUES ($1, $2, false)`,
@@ -320,6 +328,7 @@ app.post("/api/create-game", authenticateToken, async (req, res) => {
     res.json({
       success: true,
       boardID: boardId,
+      code: boardCode,
       title: boardTitle, // still returned to the client, just not persisted to the DB yet
     });
   } catch (error) {
@@ -330,13 +339,15 @@ app.post("/api/create-game", authenticateToken, async (req, res) => {
     client.release();
   }
 });
-app.post("/api/board/:boardID/join", authenticateToken, async (req, res) => {
-  const { boardID } = req.params;
+app.post("/api/board/:code/join", authenticateToken, async (req, res) => {
+  const code = req.params.code;
   const playerID = req.user.id;
   try {
-    const boardResult = await pool.query(`SELECT * FROM boards WHERE id = $1`, [
-      boardID,
-    ]);
+    const boardResult = await pool.query(
+      `SELECT * FROM boards WHERE code = $1`,
+      [code],
+    );
+    const boardID = boardResult.rows[0]?.id;
     if (boardResult.rows.length === 0) {
       return res
         .status(404)
@@ -344,12 +355,10 @@ app.post("/api/board/:boardID/join", authenticateToken, async (req, res) => {
     }
     const status = boardResult.rows[0].status;
     if (status !== "lobby") {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Cannot join a game that has already started",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Cannot join a game that has already started",
+      });
     }
     const result = await pool.query(
       `INSERT INTO players (user_id, board_id, ready) VALUES ($1, $2, false) ON CONFLICT (user_id, board_id) DO NOTHING RETURNING *`,
@@ -363,6 +372,7 @@ app.post("/api/board/:boardID/join", authenticateToken, async (req, res) => {
       success: true,
       message: "Successfully joined board",
       player: result.rows[0],
+      boardID: boardID,
     });
   } catch (error) {
     console.error("Error joining board:", error);
@@ -433,6 +443,7 @@ app.get("/api/board/:boardID", authenticateToken, async (req, res) => {
         squares.id,
         squares.index,
         squares.goal,
+        squares.player_id,
         CASE 
           WHEN marker.id IS NULL THEN false
           ELSE true
@@ -452,11 +463,13 @@ app.get("/api/board/:boardID", authenticateToken, async (req, res) => {
       success: true,
       boardID: board.id,
       title: board.title,
+      code: board.code,
       cells: squaresResult.rows.map((sq) => ({
         squareId: sq.id,
         index: sq.index,
         content: sq.goal,
         marked: sq.marked,
+        owner: sq.player_id,
       })),
     });
   } catch (error) {
@@ -486,12 +499,10 @@ app.get("/api/board/:boardID/status", authenticateToken, async (req, res) => {
       [boardID, playerID],
     );
     if (playerResult.rows.length === 0) {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          message: "You are not a player on this board",
-        });
+      return res.status(403).json({
+        success: false,
+        message: "You are not a player on this board",
+      });
     }
 
     res.json({ success: true, status: result.rows[0].status });
@@ -685,6 +696,36 @@ app.get("/api/board/:boardID/getReady", authenticateToken, async (req, res) => {
       .json({ success: false, message: "Failed to get ready status" });
   }
 });
+
+app.post(
+  "/api/board/:boardID/leaveGame",
+  authenticateToken,
+  async (req, res) => {
+    const playerID = req.user.id;
+    const { boardID } = req.params;
+    try {
+      const response = await pool.query(
+        "DELETE FROM players WHERE user_id = $1 AND board_id = $2 RETURNING *",
+        [playerID, boardID],
+      );
+
+      if (response.rows.length == 0) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Player did not leave the board" });
+      }
+      io.to(`board-${boardID}`).emit("players-updated", { boardID });
+
+      return res.json({ success: true, message: "Left the game" });
+    } catch (error) {
+      console.error("error leaving the game", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to remove player from board",
+      });
+    }
+  },
+);
 
 app.post(
   "/api/board/:boardID/changeReady",
