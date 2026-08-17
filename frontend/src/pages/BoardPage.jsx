@@ -107,13 +107,14 @@ function BoardPage() {
         },
       );
       const data = await finishCreationResponse.json();
-
+      
       if (data.success) {
         setStatus(data.status);
       }
+
     } catch (error) {
       console.error("Failed to finish creation phase", error);
-    }
+    } 
   }
 
   async function handleBingo() {
