@@ -27,15 +27,12 @@ function BingoSquare({ content, boardID, index, status, marked, onToggleMarker, 
             boardID,
             index,
             content: text,
-            owner: owner,
           }),
         });
 
         if (!response.ok) {
           throw new Error('Failed to save bingo square');
         }
-        setOwner(owner);
-        console.log('Owner set to:', owner);
         console.log('Saved:', text);
       } catch (error) {
         console.error(error);
