@@ -88,6 +88,7 @@ function authenticateToken(req, res, next) {
 app.get("/", (req, res) => {
   res.send("Server is working");
 });
+
 app.post("/api/register", async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -207,6 +208,7 @@ app.get("/api/boards", authenticateToken, async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to fetch boards" });
   }
 });
+
 app.post(
   "/api/board/:boardID/square/:index/bingo-square",
   authenticateToken,
@@ -575,6 +577,7 @@ app.put("/api/board/:boardID/bingo", authenticateToken, async (req, res) => {
     client.release();
   }
 });
+
 app.post(
   "/api/board/:boardID/square/:index/toggle-marker",
   authenticateToken,
