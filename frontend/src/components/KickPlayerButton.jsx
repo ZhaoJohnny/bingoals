@@ -1,8 +1,9 @@
-import { useState } from "react";
 import "../styles/KickPlayerButton.css";
 
 function KickPlayerButton({ currentPlayer, boardID }) {
   async function handleKickPlayer() {
+    if (!window.confirm("Kick this player from the game?")) return;
+
     try {
       const res = await fetch(
         `${import.meta.env.VITE_API_URL}/api/board/${boardID}/kickPlayer/${currentPlayer}`,
@@ -15,6 +16,9 @@ function KickPlayerButton({ currentPlayer, boardID }) {
         },
       );
       const kickStatus = await res.json();
+      if (!kickStatus.success) {
+        console.error("Failed to kick player", kickStatus.message);
+      }
     } catch (error) {
       console.error("Error kicking player", error);
     }
