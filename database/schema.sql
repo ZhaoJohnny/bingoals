@@ -54,6 +54,7 @@ CREATE TABLE public.boards (
     status character varying(20) DEFAULT 'active'::character varying,
     created_at timestamp without time zone DEFAULT now(),
     ended_at timestamp without time zone,
+    ends_at timestamp without time zone,
     winner_id integer,
     host_id integer,
     title character varying(255)
