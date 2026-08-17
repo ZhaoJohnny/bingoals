@@ -6,6 +6,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import http from "http";
 import { Server } from "socket.io";
+import { DateTime } from "luxon";
 dotenv.config();
 
 const app = express();
@@ -84,6 +85,71 @@ function authenticateToken(req, res, next) {
       message: "Invalid or expired token",
     });
   }
+}
+function getVancouverEndDate() {
+  return DateTime
+    .now()
+    .setZone("America/Vancouver")
+    .endOf("year")
+    .toJSDate();
+}
+async function checkAndEndExpiredBoard(boardID) {
+  const result = await pool.query(
+    `SELECT id, status, ends_at
+     FROM boards
+     WHERE id = $1`,
+    [boardID]
+  );
+
+  if (result.rows.length === 0) {
+    return {
+      exists: false,
+      ended: false,
+      status: null,
+    };
+  }
+
+  const board = result.rows[0];
+
+  if (board.status !== 'ended' && new Date(board.ends_at) <= new Date()) {
+    const winnerResult = await pool.query(
+      `SELECT marker.player_id, COUNT(marker.id) AS marked_count
+      FROM marker
+      WHERE board_id = $1
+      GROUP BY marker.player_id
+      ORDER BY marked_count DESC
+      LIMIT 1`,
+      [boardID]
+    );
+    const endedResult = await pool.query(
+      `UPDATE boards
+       SET status = 'ended', ended_at = NOW()
+       WHERE id = $1
+       RETURNING status`,
+      [boardID]
+    );
+
+    io.to(`board-${boardID}`).emit('status-updated', {
+      boardID,
+      status: 'ended',
+    });
+
+    io.to(`board-${boardID}`).emit('board-updated', {
+      boardID,
+    });
+
+    return {
+      exists: true,
+      ended: true,
+      status: endedResult.rows[0].status,
+    };
+  }
+
+  return {
+    exists: true,
+    ended: board.status === 'ended',
+    status: board.status,
+  };
 }
 app.get("/", (req, res) => {
   res.send("Server is working");
@@ -217,6 +283,21 @@ app.post(
     const index = req.params.index;
     let client;
     try {
+      const boardCheck = await checkAndEndExpiredBoard(boardID);
+      if (!boardCheck.exists) {
+        return res.status(404).json({
+          success: false,
+          message: "Board not found",
+        });
+      }
+
+      if (boardCheck.ended) {
+        return res.status(400).json({
+          success: false,
+          message: "This game has ended",
+          status: "ended",
+        });
+      }
       client = await pool.connect();
       const squarePlayerResult = await client.query(
         `SELECT player_id FROM squares WHERE index = $1 AND board_id = $2`,
@@ -243,6 +324,7 @@ app.post(
           .status(404)
           .json({ success: false, message: "Board not found" });
       }
+      
       const boardStatus = boardStatusResult.rows[0].status;
       if (boardStatus !== "creation") {
         return res.status(400).json({
@@ -311,8 +393,8 @@ app.post("/api/create-game", authenticateToken, async (req, res) => {
       );
     }
     const boardResult = await client.query(
-      `INSERT INTO boards (host_id, status, code) VALUES ($1, 'lobby', $2) RETURNING id, code`,
-      [playerID, code],
+      `INSERT INTO boards (host_id, status, code, ends_at) VALUES ($1, 'lobby', $2, $3) RETURNING id, code, ends_at`,
+      [playerID, code, getVancouverEndDate()],
     );
 
     const boardId = boardResult.rows[0].id;
@@ -489,6 +571,7 @@ app.get("/api/board/:boardID/status", authenticateToken, async (req, res) => {
     const result = await pool.query(`SELECT status FROM boards WHERE id = $1`, [
       boardID,
     ]);
+    
     if (result.rows.length === 0) {
       return res
         .status(404)
@@ -504,7 +587,7 @@ app.get("/api/board/:boardID/status", authenticateToken, async (req, res) => {
         message: "You are not a player on this board",
       });
     }
-
+    
     res.json({ success: true, status: result.rows[0].status });
   } catch (error) {
     console.error("Error fetching board status:", error);
@@ -519,6 +602,21 @@ app.put("/api/board/:boardID/bingo", authenticateToken, async (req, res) => {
   const playerID = req.user.id;
   let client;
   try {
+    const boardCheck = await checkAndEndExpiredBoard(boardID);
+      if (!boardCheck.exists) {
+        return res.status(404).json({
+          success: false,
+          message: "Board not found",
+        });
+      }
+
+      if (boardCheck.ended) {
+        return res.status(400).json({
+          success: false,
+          message: "This game has ended",
+          status: "ended",
+        });
+      }
     client = await pool.connect();
     client.query("BEGIN");
     const squaresCountResult = await client.query(
@@ -584,6 +682,23 @@ app.post(
     const playerID = req.user.id;
     let client;
     try {
+      const boardCheck = await checkAndEndExpiredBoard(boardID);
+
+      if (!boardCheck.exists) {
+        return res.status(404).json({
+          success: false,
+          message: "Board not found",
+        });
+      }
+
+      if (boardCheck.ended) {
+        return res.status(400).json({
+          success: false,
+          message: "This game has already ended",
+          status: "ended",
+          winnerID: boardCheck.winnerID,
+        });
+}
       client = await pool.connect();
       const squareResult = await client.query(
         "SELECT id FROM squares WHERE board_id = $1 AND index = $2",
