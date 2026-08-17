@@ -467,9 +467,12 @@ app.put(
         `UPDATE boards SET status = 'playing' WHERE id = $1`,
         [boardID],
       );
+
+      await client.query("COMMIT");
       io.to(`board-${boardID}`).emit("board-updated", {
         boardID,
       });
+      
       return res.json({
         success: true,
         message: "Board changed to playing",
@@ -477,11 +480,12 @@ app.put(
       });
     } catch (error) {
       console.error("Error fetching board:", error);
-
       res.status(500).json({
         success: false,
         message: "Failed to fetch board",
       });
+    } finally {
+      if (client) client.release();
     }
   },
 );
