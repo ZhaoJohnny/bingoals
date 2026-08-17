@@ -7,7 +7,7 @@ function BingoBoard({ title, boardID, status }) {
   const [cells, setCells] = useState(
     Array.from({ length: 25 }, (_, index) => ({ index, content: '' }))
   );
-
+  
   const [loading, setLoading] = useState(true);
 
   
@@ -95,6 +95,7 @@ function BingoBoard({ title, boardID, status }) {
             index={cell.index}
             status={status}
             marked={cell.marked}
+            owner={cell.owner}
             onToggleMarker={handleToggleMarker}
           />
         ))}

@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 
 function LoginPage() {
     const navigate = useNavigate();
+    
     async function handleSubmit(event) {
         event.preventDefault();
         const email = event.target[0].value;
@@ -25,6 +26,8 @@ function LoginPage() {
         }
         
     }
+    console.log("FULL ENV:", import.meta.env);
+console.log("API URL:", import.meta.env.VITE_API_URL);
   return (
     <div>
       <h1>Login</h1>

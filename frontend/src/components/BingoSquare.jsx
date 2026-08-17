@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import '../styles/BingoSquare.css';
 
-function BingoSquare({ content, boardID, index, status, marked, onToggleMarker }) {
+function BingoSquare({ content, boardID, index, status, marked, onToggleMarker, owner: initialOwner }) {
   const [text, setText] = useState(content || '');
-
+  const [owner, setOwner] = useState(initialOwner || null);
+  const playerID = JSON.parse(localStorage.getItem('user'))?.id;
   useEffect(() => {
     setText(content || '');
-  }, [content]);
+    setOwner(owner || null);
+  }, [content, owner]);
   async function handleKeyDown(e) {
     if (status !== 'creation') return;
     if (status === 'ended') return(
@@ -26,13 +28,15 @@ function BingoSquare({ content, boardID, index, status, marked, onToggleMarker }
             boardID,
             index,
             content: text,
+            owner: owner,
           }),
         });
 
         if (!response.ok) {
           throw new Error('Failed to save bingo square');
         }
-
+        setOwner(owner);
+        console.log('Owner set to:', owner);
         console.log('Saved:', text);
       } catch (error) {
         console.error(error);
@@ -53,7 +57,7 @@ function BingoSquare({ content, boardID, index, status, marked, onToggleMarker }
 
   return (
     <input
-      className="bingo-square"
+      className={owner === playerID ? 'bingo-square owned' : 'bingo-square'}
       value={text}
       onChange={(e) => setText(e.target.value)}
       onKeyDown={handleKeyDown}

@@ -234,6 +234,22 @@ app.post(
           message: "You are not the assigned player for this square",
         });
       }
+      const boardStatusResult = await client.query(
+        `SELECT status FROM boards WHERE id = $1`,
+        [boardID],
+      );
+      if (boardStatusResult.rows.length === 0) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Board not found" });
+      }
+      const boardStatus = boardStatusResult.rows[0].status;
+      if (boardStatus !== "creation") {
+        return res.status(400).json({
+          success: false,
+          message: "Cannot edit square when board is not in creation status",
+        });
+      }
       const result = await client.query(
         `UPDATE squares SET goal = $1 WHERE board_id = $2 AND index = $3 RETURNING id, goal`,
         [content, boardID, index],
@@ -250,6 +266,7 @@ app.post(
         success: true,
         message: "Bingo square saved",
         square: result.rows[0],
+
       });
       client.query("COMMIT");
     } catch (error) {
@@ -426,6 +443,7 @@ app.get("/api/board/:boardID", authenticateToken, async (req, res) => {
         squares.id,
         squares.index,
         squares.goal,
+        squares.player_id,
         CASE 
           WHEN marker.id IS NULL THEN false
           ELSE true
@@ -451,6 +469,7 @@ app.get("/api/board/:boardID", authenticateToken, async (req, res) => {
         index: sq.index,
         content: sq.goal,
         marked: sq.marked,
+        owner: sq.player_id,
       })),
     });
   } catch (error) {
