@@ -469,7 +469,7 @@ app.get("/api/board/:boardID", authenticateToken, async (req, res) => {
         index: sq.index,
         content: sq.goal,
         marked: sq.marked,
-        owner: sq.player_id,
+        isOwner: sq.player_id === playerID,
       })),
     });
   } catch (error) {

@@ -95,7 +95,7 @@ function BingoBoard({ title, boardID, status }) {
             index={cell.index}
             status={status}
             marked={cell.marked}
-            owner={cell.owner}
+            isOwner={cell.isOwner}
             onToggleMarker={handleToggleMarker}
           />
         ))}

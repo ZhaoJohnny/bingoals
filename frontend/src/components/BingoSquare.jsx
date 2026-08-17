@@ -1,15 +1,13 @@
 import { useState, useEffect } from 'react';
 import '../styles/BingoSquare.css';
 
-function BingoSquare({ content, boardID, index, status, marked, onToggleMarker, owner: initialOwner }) {
+function BingoSquare({ content, boardID, index, status, marked, onToggleMarker, isOwner }) {
   const [text, setText] = useState(content || '');
-  const [owner, setOwner] = useState(initialOwner || null);
   const playerID = JSON.parse(localStorage.getItem('user'))?.id;
-  const isOwner = Number(owner) === Number(playerID);
   useEffect(() => {
     setText(content || '');
-    setOwner(owner || null);
-  }, [content, owner]);
+
+  }, [content]);
   async function handleKeyDown(e) {
     if (status !== 'creation') return;
     if (status === 'ended') return(
