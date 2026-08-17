@@ -27,6 +27,7 @@ function BingoSquare({ content, boardID, index, status, marked, onToggleMarker, 
             boardID,
             index,
             content: text,
+
           }),
         });
 
@@ -52,7 +53,7 @@ function BingoSquare({ content, boardID, index, status, marked, onToggleMarker, 
   }
   if (status === 'ended') {
     return (
-      <div className="bingo-square">
+      <div className={marked ? 'bingo-square marked' : 'bingo-square'}>
         {text}
       </div>
     );
