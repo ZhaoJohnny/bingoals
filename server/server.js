@@ -422,6 +422,7 @@ app.post("/api/create-game", authenticateToken, async (req, res) => {
     client.release();
   }
 });
+
 app.post("/api/board/:code/join", authenticateToken, async (req, res) => {
   const code = req.params.code;
   const playerID = req.user.id;
@@ -968,9 +969,9 @@ app.post(
 );
 
 app.post("/api/board/:boardID/start", authenticateToken, async (req, res) => {
-  const userID = req.user.id;
   const { boardID } = req.params;
   const playerID = req.user.id;
+  const BOARD_SIZE = 25;
   let client;
 
   function shuffleArray(array) {
@@ -1004,14 +1005,6 @@ app.post("/api/board/:boardID/start", authenticateToken, async (req, res) => {
 
     const board = boardResult.rows[0];
 
-    if (Number(userID) !== Number(board.host_id)) {
-      await client.query("ROLLBACK");
-      return res.status(403).json({
-        success: false,
-        message: "Player is not the host",
-      });
-    }
-
     // Optional: prevent starting twice
     if (board.status === "playing" || board.status === "ended") {
       await client.query("ROLLBACK");
@@ -1031,7 +1024,7 @@ app.post("/api/board/:boardID/start", authenticateToken, async (req, res) => {
 
     if (players.length === 0) {
       await client.query("ROLLBACK");
-      return res.status(400).json({
+      return res.status(404).json({
         success: false,
         message: "No players found on this board",
       });
@@ -1060,7 +1053,7 @@ app.post("/api/board/:boardID/start", authenticateToken, async (req, res) => {
       const valuesSql = [];
       const params = [];
 
-      for (let i = 0; i < 25; i++) {
+      for (let i = 0; i < BOARD_SIZE; i++) {
         valuesSql.push(`($${params.length + 1}, $${params.length + 2}, '')`);
         params.push(boardID, i);
       }
@@ -1081,7 +1074,7 @@ app.post("/api/board/:boardID/start", authenticateToken, async (req, res) => {
     }
 
     // 5. If something is wrong, stop
-    if (squares.length !== 25) {
+    if (squares.length !== BOARD_SIZE) {
       await client.query("ROLLBACK");
       return res.status(400).json({
         success: false,
@@ -1163,7 +1156,7 @@ app.post(
           .json({ success: false, message: "Player is not the host" });
       }
 
-      if (String(currentPlayer) === String(host_id)) {
+      if (currentPlayer === host_id) {
         return res
           .status(400)
           .json({ success: false, message: "Host cannot kick themselves" });
