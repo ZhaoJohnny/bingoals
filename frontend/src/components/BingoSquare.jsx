@@ -67,7 +67,7 @@ function BingoSquare({ content, boardID, index, status, marked, onToggleMarker, 
   }
 
   return (
-    <input
+    <textarea
       className="bingo-square owned"
       value={text}
       onChange={(e) => setText(e.target.value)}
