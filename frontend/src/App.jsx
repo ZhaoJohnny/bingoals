@@ -4,6 +4,7 @@ import BoardPage from "./pages/BoardPage";
 import LoginPage from "./pages/LoginPage";
 import SignUpPage from "./pages/SignUpPage";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Header from "./components/Header";
 function StartMenuPage() {
   const navigate = useNavigate();
 
@@ -50,8 +51,7 @@ function StartMenuPage() {
 function App() {
   return (
     <div className="app">
-      <h1 className="app-title">BINGOals</h1>
-
+      <Header />
       <Routes>
         <Route path="/" element={<ProtectedRoute><StartPage /></ProtectedRoute>} />
         <Route path="/login" element={<LoginPage />} />
