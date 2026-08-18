@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import '../styles/BingoSquare.css';
 
-function BingoSquare({ content, boardID, index, status, marked, onToggleMarker }) {
+function BingoSquare({ content, boardID, index, status, marked, onToggleMarker, isOwner }) {
   const [text, setText] = useState(content || '');
-
+  const playerID = JSON.parse(localStorage.getItem('user'))?.id;
   useEffect(() => {
     setText(content || '');
+
   }, [content]);
   async function handleKeyDown(e) {
     if (status !== 'creation') return;
@@ -26,13 +27,13 @@ function BingoSquare({ content, boardID, index, status, marked, onToggleMarker }
             boardID,
             index,
             content: text,
+
           }),
         });
 
         if (!response.ok) {
           throw new Error('Failed to save bingo square');
         }
-
         console.log('Saved:', text);
       } catch (error) {
         console.error(error);
@@ -50,10 +51,24 @@ function BingoSquare({ content, boardID, index, status, marked, onToggleMarker }
       </button>
     );
   }
+  if (status === 'ended') {
+    return (
+      <div className={marked ? 'bingo-square marked' : 'bingo-square'}>
+        {text}
+      </div>
+    );
+  }
+  if (status === 'creation' && !isOwner) {
+    return (
+      <div className="bingo-square unowned">
+        {text || ''}
+      </div>
+    );
+  }
 
   return (
-    <input
-      className="bingo-square"
+    <textarea
+      className="bingo-square owned"
       value={text}
       onChange={(e) => setText(e.target.value)}
       onKeyDown={handleKeyDown}

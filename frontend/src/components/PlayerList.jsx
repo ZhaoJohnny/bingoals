@@ -1,30 +1,30 @@
 import { useState, useEffect } from 'react';
 import '../styles/PlayerList.css';
 import socket from '../socket.js';
+import KickPlayerButton from './KickPlayerButton';
+
 function PlayerList({ boardID }) {
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  
-    async function loadPlayers() {
-      try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/board/${boardID}/players`);
-        const data = await res.json();
-        if (data.success) setPlayers(data.players);
-      } catch (error) {
-        console.error('Failed to load players', error);
-      } finally {
-        setLoading(false);
-      }
+  async function loadPlayers() {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/board/${boardID}/players`);
+      const data = await res.json();
+      if (data.success) setPlayers(data.players);
+    } catch (error) {
+      console.error('Failed to load players', error);
+    } finally {
+      setLoading(false);
     }
+  }
+
   useEffect(() => {
     loadPlayers(); // initial fetch
     socket.on('players-updated', (data) => {
-
       if (String(data.boardID) === String(boardID)) {
-        
         loadPlayers();
-    }
+      }
     });
     return () => {
       socket.off('players-updated');
@@ -43,6 +43,7 @@ function PlayerList({ boardID }) {
             <span className={player.ready ? 'ready-mark' : 'not-ready-mark'}>
               {player.ready ? '✓' : '✗'}
             </span>
+            <KickPlayerButton currentPlayer={player.id} boardID={boardID} />
           </li>
         ))}
       </ul>

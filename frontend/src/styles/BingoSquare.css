@@ -9,13 +9,38 @@
   color: inherit;
   text-align: center;
 
+  padding: 8px;
+  margin: 0;
+
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.2;
+}
+
+button.bingo-square,
+div.bingo-square {
   display: flex;
   align-items: center;
   justify-content: center;
-
-  padding: 8px;
-  margin: 0;
 }
+
+textarea.bingo-square {
+  resize: none;
+  font-family: inherit;
+  overflow: hidden;
+  display: block;
+}
+
+.bingo-square.owned {
+  background-color: red;
+}
+
+.bingo-square.unowned {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 .bingo-square.marked {
   background-color: lightgreen;
   text-decoration: line-through;
