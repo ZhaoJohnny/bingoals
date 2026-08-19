@@ -301,6 +301,7 @@ app.post(
         });
       }
       client = await pool.connect();
+      cleint.query("BEGIN");
       const squarePlayerResult = await client.query(
         `SELECT player_id FROM squares WHERE index = $1 AND board_id = $2`,
         [index, boardID],
@@ -346,13 +347,14 @@ app.post(
         });
       }
 
+      
+      client.query("COMMIT");
+      io.to(`board-${boardID}`).emit("board-updated", { boardID });
       res.json({
         success: true,
         message: "Bingo square saved",
         square: result.rows[0],
       });
-      client.query("COMMIT");
-      io.to(`board-${boardID}`).emit("board-updated", { boardID });
     } catch (error) {
       client.query("ROLLBACK");
       console.error("Error saving bingo square:", error);
