@@ -187,9 +187,10 @@ function BoardPage() {
   }
   const [showPopup, setShowPopup] = useState(false);
   const [selectedSquareID, setSelectedSquareID] = useState(null);
-  async function handleBingoSquareClick(squareID) {
+  async function handleBingoSquareClick(squareID, content) {
     setShowPopup(true);
     setSelectedSquareID(squareID);
+    setText(content);
     console.log("Bingo square clicked:", squareID);
   }
     

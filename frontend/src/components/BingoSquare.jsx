@@ -36,7 +36,7 @@ function BingoSquare({ content, boardID, index, status, marked, onToggleMarker, 
       className="bingo-square owned"
       // value={text}
       // onChange={(e) => setText(e.target.value)}
-      onClick={func ? () => func(index) : undefined}
+      onClick={func ? () => func(index, text) : undefined}
     >
       {text}
     </button>

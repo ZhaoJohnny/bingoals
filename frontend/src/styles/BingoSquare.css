@@ -16,6 +16,9 @@
   overflow-wrap: anywhere;
   word-break: break-word;
   line-height: 1.2;
+  
+  overflow: hidden;
+
 }
 
 button.bingo-square,
@@ -24,6 +27,7 @@ div.bingo-square {
   align-items: center;
   justify-content: center;
 }
+
 
 
 .bingo-square.owned {
