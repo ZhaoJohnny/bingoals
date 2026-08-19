@@ -352,6 +352,7 @@ app.post(
         square: result.rows[0],
       });
       client.query("COMMIT");
+      io.to(`board-${boardID}`).emit("board-updated", { boardID });
     } catch (error) {
       client.query("ROLLBACK");
       console.error("Error saving bingo square:", error);

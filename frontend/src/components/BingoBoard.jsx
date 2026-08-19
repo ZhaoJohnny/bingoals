@@ -3,7 +3,7 @@ import BingoSquare from './BingoSquare';
 import '../styles/BingoBoard.css';
 import socket from '../socket.js';
 
-function BingoBoard({ title, boardID, status }) {
+function BingoBoard({ title, boardID, status, prop }) {
   const [cells, setCells] = useState(
     Array.from({ length: 25 }, (_, index) => ({ index, content: '' }))
   );
@@ -97,6 +97,7 @@ function BingoBoard({ title, boardID, status }) {
             marked={cell.marked}
             isOwner={cell.isOwner}
             onToggleMarker={handleToggleMarker}
+            func={prop}
           />
         ))}
       </div>

@@ -8,6 +8,7 @@ import FinishButton from "../components/FinishButton";
 import { getPlayerIDFromToken } from "../utils/decodeToken";
 
 import socket from "../socket.js";
+import "../styles/BoardPage.css";
 
 function BoardPage() {
   const { boardID } = useParams();
@@ -155,6 +156,43 @@ function BoardPage() {
       console.error("Error submitting BINGO:", error);
     }
   }
+  const [text, setText] = useState('');
+  async function saveSquareContent(index, content) {
+    if (status !== 'creation') return;
+
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/board/${boardID}/square/${index}/bingo-square`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+          body: JSON.stringify({
+            boardID,
+            index,
+            content: text,
+
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to save bingo square');
+        }
+        setText('');
+        console.log('Saved:', text);
+      } catch (error) {
+        console.error(error);
+      }
+    
+  }
+  const [showPopup, setShowPopup] = useState(false);
+  const [selectedSquareID, setSelectedSquareID] = useState(null);
+  async function handleBingoSquareClick(squareID) {
+    setShowPopup(true);
+    setSelectedSquareID(squareID);
+    console.log("Bingo square clicked:", squareID);
+  }
+    
   useEffect(() => {
     function handleBoardStatusUpdate(data) {
       if (String(data.boardID) === String(boardID)) {
@@ -177,8 +215,26 @@ function BoardPage() {
   if (status === "creation") {
     return (
       <div>
-      <BingoBoard title="BOARD NAME" boardID={boardID} status={status}  />
+      <BingoBoard title="BOARD NAME" boardID={boardID} status={status} prop = {handleBingoSquareClick}/>
       <FinishButton onFinish={onFinish}/>
+      {showPopup && (
+        <div className="popup-overlay">
+          <div className="popup-box">
+            <textarea
+              className="popup-textarea"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+            />
+
+            <button onClick={() => setShowPopup(false)}>
+              Close
+            </button>
+            <button onClick={() => {saveSquareContent(selectedSquareID, text); setShowPopup(false);}}>
+              Save
+            </button>
+          </div>
+        </div>
+      )}
       </div>
     );
   }

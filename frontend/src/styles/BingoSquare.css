@@ -25,12 +25,6 @@ div.bingo-square {
   justify-content: center;
 }
 
-textarea.bingo-square {
-  resize: none;
-  font-family: inherit;
-  overflow: hidden;
-  display: block;
-}
 
 .bingo-square.owned {
   background-color: red;
