@@ -193,7 +193,36 @@ function BoardPage() {
     setText(content);
     console.log("Bingo square clicked:", squareID);
   }
-    
+  const [showPlayPopup, setShowPlayPopup] = useState(false);
+  const [selectedSquareMarked, setSelectedSquareMarked] = useState(false);
+  async function handlePlayBingoSquareClick(squareID, content,marked) {
+    setShowPlayPopup(true);
+    setSelectedSquareID(squareID);
+    setText(content);
+    setSelectedSquareMarked(marked);
+    console.log("Bingo square clicked:", squareID);
+  }
+  async function markSquareClick(index) {
+    try {
+      const response = await fetch(
+          `${import.meta.env.VITE_API_URL}/api/board/${boardID}/square/${index}/toggle-marker`,
+          {
+            method: 'POST',
+            headers: {
+              authorization: `Bearer ${localStorage.getItem('token')}`,
+            },
+          }
+        );
+
+        const data = await response.json();
+        if (data.success) {
+          return data;
+        }
+    } catch (error) {
+      console.error('Failed to toggle marker:', error);
+    }
+  };
+
   useEffect(() => {
     function handleBoardStatusUpdate(data) {
       if (String(data.boardID) === String(boardID)) {
@@ -216,7 +245,7 @@ function BoardPage() {
   if (status === "creation") {
     return (
       <div>
-      <BingoBoard title="BOARD NAME" boardID={boardID} status={status} prop = {handleBingoSquareClick}/>
+      <BingoBoard title="BOARD NAME" boardID={boardID} status={status} bingoSquareClick = {handleBingoSquareClick}/>
       <FinishButton onFinish={onFinish}/>
       {showPopup && (
         <div className="popup-overlay">
@@ -242,8 +271,23 @@ function BoardPage() {
   if (status === "playing") {
     return (
       <div>
-        <BingoBoard title="BOARD NAME" boardID={boardID} status={status} />
+        <BingoBoard title="BOARD NAME" boardID={boardID} status={status} bingoSquareClick={handlePlayBingoSquareClick} markSquareClick={markSquareClick} />
         <BingoButton onClick={handleBingo} />
+        {showPlayPopup && (
+        <div className="popup-overlay">
+          <div className="popup-box">
+            <p>{text}</p>
+
+            <button onClick={() => setShowPlayPopup(false)}>
+              Close
+            </button>
+            <button onClick={() => {markSquareClick(selectedSquareID); setShowPlayPopup(false);}}>
+              {selectedSquareMarked ? 'Unmark' : 'Mark'}
+            </button>
+
+          </div>
+        </div>
+      )}
       </div>
     );
   } else if (status === "ended") {

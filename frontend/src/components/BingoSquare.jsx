@@ -1,25 +1,23 @@
 import { useState, useEffect } from 'react';
 import '../styles/BingoSquare.css';
 
-function BingoSquare({ content, boardID, index, status, marked, onToggleMarker, isOwner, func }) {
+function BingoSquare({ content, boardID, index, status, marked, isOwner, bingoSquareClick }) {
 
   const playerID = JSON.parse(localStorage.getItem('user'))?.id;
-  
-
   if (status === 'playing') {
     return (
       <button
         className={marked ? 'bingo-square marked' : 'bingo-square'}
-        onClick={() => onToggleMarker(index)}
+        onClick={() => bingoSquareClick(index,content, marked)}
       >
-        {content}
+        {content || ''}
       </button>
     );
   }
   if (status === 'ended') {
     return (
       <div className={marked ? 'bingo-square marked' : 'bingo-square'}>
-        {content}
+        {content || ''}
       </div>
     );
   }
@@ -30,12 +28,12 @@ function BingoSquare({ content, boardID, index, status, marked, onToggleMarker, 
       </div>
     );
   }
-
   return (
     <button
       className="bingo-square owned"
-      onClick={func ? () => func(index, content) : undefined}>
-      {content}
+      onClick={bingoSquareClick ? () => bingoSquareClick(index, content) : undefined}>
+      {content || ''}
+      
     </button>
   );
 }

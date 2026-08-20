@@ -343,13 +343,13 @@ app.post(
         });
       }
 
-      client.query("COMMIT");
-      io.to(`board-${boardID}`).emit("board-updated", { boardID });
       res.json({
         success: true,
         message: "Bingo square saved",
         square: result.rows[0],
       });
+      client.query("COMMIT");
+      io.to(`board-${boardID}`).emit("board-updated", { boardID });
     } catch (error) {
       client.query("ROLLBACK");
       console.error("Error saving bingo square:", error);
@@ -806,6 +806,8 @@ app.post(
         await client.query(`DELETE FROM marker WHERE id = $1`, [
           existingMarker.rows[0].id,
         ]);
+        await client.query("COMMIT");
+        io.to(`board-${boardID}`).emit("board-updated", { boardID });
         return res.json({
           success: true,
           message: "Marker removed",
@@ -815,6 +817,8 @@ app.post(
           `INSERT INTO marker (player_id, square_id, board_id) VALUES ($1, $2, $3)`,
           [playerID, squareID, boardID],
         );
+        await client.query("COMMIT");
+        io.to(`board-${boardID}`).emit("board-updated", { boardID });
         return res.json({
           success: true,
           message: "Marker added",
