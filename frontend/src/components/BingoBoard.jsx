@@ -78,7 +78,7 @@ function BingoBoard({ title, boardID, status, prop }) {
     }
   }
 
-  if (loading) return <div className="bingo-board">Loading board…</div>;
+  
 
   return (
     <div className="bingo-board">
