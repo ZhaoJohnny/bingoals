@@ -87,18 +87,14 @@ function authenticateToken(req, res, next) {
   }
 }
 function getVancouverEndDate() {
-  return DateTime
-    .now()
-    .setZone("America/Vancouver")
-    .endOf("year")
-    .toJSDate();
+  return DateTime.now().setZone("America/Vancouver").endOf("year").toJSDate();
 }
 async function checkAndEndExpiredBoard(boardID) {
   const result = await pool.query(
     `SELECT id, status, ends_at
      FROM boards
      WHERE id = $1`,
-    [boardID]
+    [boardID],
   );
 
   if (result.rows.length === 0) {
@@ -111,7 +107,7 @@ async function checkAndEndExpiredBoard(boardID) {
 
   const board = result.rows[0];
 
-  if (board.status !== 'ended' && new Date(board.ends_at) <= new Date()) {
+  if (board.status !== "ended" && new Date(board.ends_at) <= new Date()) {
     const winnerResult = await pool.query(
       `SELECT marker.player_id, COUNT(marker.id) AS marked_count
       FROM marker
@@ -119,22 +115,22 @@ async function checkAndEndExpiredBoard(boardID) {
       GROUP BY marker.player_id
       ORDER BY marked_count DESC
       LIMIT 1`,
-      [boardID]
+      [boardID],
     );
     const endedResult = await pool.query(
       `UPDATE boards
        SET status = 'ended', ended_at = NOW()
        WHERE id = $1
        RETURNING status`,
-      [boardID]
+      [boardID],
     );
 
-    io.to(`board-${boardID}`).emit('status-updated', {
+    io.to(`board-${boardID}`).emit("status-updated", {
       boardID,
-      status: 'ended',
+      status: "ended",
     });
 
-    io.to(`board-${boardID}`).emit('board-updated', {
+    io.to(`board-${boardID}`).emit("board-updated", {
       boardID,
     });
 
@@ -147,7 +143,7 @@ async function checkAndEndExpiredBoard(boardID) {
 
   return {
     exists: true,
-    ended: board.status === 'ended',
+    ended: board.status === "ended",
     status: board.status,
   };
 }
@@ -327,7 +323,7 @@ app.post(
           .status(404)
           .json({ success: false, message: "Board not found" });
       }
-      
+
       const boardStatus = boardStatusResult.rows[0].status;
       if (boardStatus !== "creation") {
         return res.status(400).json({
@@ -559,7 +555,7 @@ app.put(
       io.to(`board-${boardID}`).emit("board-updated", {
         boardID,
       });
-      
+
       return res.json({
         success: true,
         message: "Board changed to playing",
@@ -656,7 +652,7 @@ app.get("/api/board/:boardID/status", authenticateToken, async (req, res) => {
     const result = await pool.query(`SELECT status FROM boards WHERE id = $1`, [
       boardID,
     ]);
-    
+
     if (result.rows.length === 0) {
       return res
         .status(404)
@@ -672,7 +668,7 @@ app.get("/api/board/:boardID/status", authenticateToken, async (req, res) => {
         message: "You are not a player on this board",
       });
     }
-    
+
     res.json({ success: true, status: result.rows[0].status });
   } catch (error) {
     console.error("Error fetching board status:", error);
@@ -688,20 +684,20 @@ app.put("/api/board/:boardID/bingo", authenticateToken, async (req, res) => {
   let client;
   try {
     const boardCheck = await checkAndEndExpiredBoard(boardID);
-      if (!boardCheck.exists) {
-        return res.status(404).json({
-          success: false,
-          message: "Board not found",
-        });
-      }
+    if (!boardCheck.exists) {
+      return res.status(404).json({
+        success: false,
+        message: "Board not found",
+      });
+    }
 
-      if (boardCheck.ended) {
-        return res.status(400).json({
-          success: false,
-          message: "This game has ended",
-          status: "ended",
-        });
-      }
+    if (boardCheck.ended) {
+      return res.status(400).json({
+        success: false,
+        message: "This game has ended",
+        status: "ended",
+      });
+    }
     client = await pool.connect();
     client.query("BEGIN");
     const squaresCountResult = await client.query(
@@ -784,7 +780,7 @@ app.post(
           status: "ended",
           winnerID: boardCheck.winnerID,
         });
-}
+      }
       client = await pool.connect();
       const squareResult = await client.query(
         "SELECT id FROM squares WHERE board_id = $1 AND index = $2",
@@ -908,17 +904,72 @@ app.post(
   async (req, res) => {
     const playerID = req.user.id;
     const { boardID } = req.params;
+    let client;
     try {
-      const response = await pool.query(
+      client = await pool.connect();
+      await client.query("BEGIN");
+
+      const deleteResult = await client.query(
         "DELETE FROM players WHERE user_id = $1 AND board_id = $2 RETURNING *",
         [playerID, boardID],
       );
 
-      if (response.rows.length == 0) {
+      if (deleteResult.rows.length === 0) {
+        await client.query("ROLLBACK");
         return res
           .status(404)
-          .json({ success: false, message: "Player did not leave the board" });
+          .json({ success: false, message:  "Player was not on this board" });
       }
+
+      const remainingPlayers = await client.query(
+        "SELECT * FROM players WHERE board_id = $1",
+        [boardID],
+      );
+
+      if (remainingPlayers.rows.length === 0) {
+        await client.query("DELETE FROM boards WHERE id = $1", [boardID]);
+        await client.query("COMMIT");
+
+        io.to(`board-${boardID}`).emit("board-deleted", { boardID });
+
+        return res.json({
+          success: true,
+          message: "Player left and board was deleted (no players remaining)",
+          boardDeleted: true,
+        });
+      }
+
+      const hostResult = await client.query(
+        "SELECT host_id FROM boards WHERE id = $1",
+        [boardID],
+      );
+
+      if (hostResult.rows.length === 0) {
+        await client.query("ROLLBACK");
+        return res
+          .status(404)
+          .json({ success: false, message: "Host could not be retrieved" });
+      }
+
+      const currentHostID = hostResult.rows[0].host_id;
+
+      if (String(currentHostID) === String(playerID)) {
+        const newHostID = remainingPlayers.rows[0].user_id;
+        await client.query("UPDATE boards SET host_id = $1 WHERE id = $2", [
+          newHostID,
+          boardID,
+        ]);
+
+        await client.query("COMMIT");
+
+        io.to(`board-${boardID}`).emit("players-updated", { boardID });
+        io.to(`board-${boardID}`).emit("host-changed", {
+          boardID,
+          newHostID,
+        });
+      }
+
+      await client.query("COMMIT");
       io.to(`board-${boardID}`).emit("players-updated", { boardID });
 
       return res.json({ success: true, message: "Left the game" });
@@ -928,6 +979,8 @@ app.post(
         success: false,
         message: "Failed to remove player from board",
       });
+    } finally {
+      if (client) client.release();
     }
   },
 );
@@ -1156,13 +1209,13 @@ app.post(
 
       const host_id = host.rows[0].host_id;
 
-      if (playerID != host_id) {
+      if (String(playerID) != String(host_id)) {
         return res
           .status(403)
           .json({ success: false, message: "Player is not the host" });
       }
 
-      if (currentPlayer === host_id) {
+      if (String(currentPlayer) === String(host_id)) {
         return res
           .status(400)
           .json({ success: false, message: "Host cannot kick themselves" });
