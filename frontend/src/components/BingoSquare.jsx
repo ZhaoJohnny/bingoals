@@ -1,41 +1,39 @@
 import { useState, useEffect } from 'react';
 import '../styles/BingoSquare.css';
 
-function BingoSquare({ content, boardID, index, status, marked, onToggleMarker, isOwner, func }) {
-  const [text, setText] = useState(content || '');
-  const playerID = JSON.parse(localStorage.getItem('user'))?.id;
-  
+function BingoSquare({ content, boardID, index, status, marked, isOwner, bingoSquareClick }) {
 
+  const playerID = JSON.parse(localStorage.getItem('user'))?.id;
   if (status === 'playing') {
     return (
       <button
         className={marked ? 'bingo-square marked' : 'bingo-square'}
-        onClick={() => onToggleMarker(index)}
+        onClick={() => bingoSquareClick(index,content, marked)}
       >
-        {text}
+        {content || ''}
       </button>
     );
   }
   if (status === 'ended') {
     return (
       <div className={marked ? 'bingo-square marked' : 'bingo-square'}>
-        {text}
+        {content || ''}
       </div>
     );
   }
   if (status === 'creation' && !isOwner) {
     return (
       <div className="bingo-square unowned">
-        {text || ''}
+        {content || ''}
       </div>
     );
   }
-
   return (
     <button
       className="bingo-square owned"
-      onClick={func ? () => func(index, text) : undefined}>
-      {text}
+      onClick={bingoSquareClick ? () => bingoSquareClick(index, content) : undefined}>
+      {content || ''}
+      
     </button>
   );
 }

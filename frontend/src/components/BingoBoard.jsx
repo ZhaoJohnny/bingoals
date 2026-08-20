@@ -3,7 +3,7 @@ import BingoSquare from './BingoSquare';
 import '../styles/BingoBoard.css';
 import socket from '../socket.js';
 
-function BingoBoard({ title, boardID, status, prop }) {
+function BingoBoard({ title, boardID, status, bingoSquareClick, markSquareClick}) {
   const [cells, setCells] = useState(
     Array.from({ length: 25 }, (_, index) => ({ index, content: '' }))
   );
@@ -50,20 +50,10 @@ function BingoBoard({ title, boardID, status, prop }) {
       socket.off('board-updated', handleBoardUpdated);
     };
   }, [boardID, status]);
-  async function handleToggleMarker(index) {
+  async function handleToggleMarker(index,content) {
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/board/${boardID}/square/${index}/toggle-marker`,
-        {
-          method: 'POST',
-          headers: {
-            authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        }
-      );
-
-      const data = await response.json();
-
+      const data = await markSquareClick(index,content);
+      
       if (data.success) {
         setCells((prevCells) =>
           prevCells.map((cell) =>
@@ -97,7 +87,7 @@ function BingoBoard({ title, boardID, status, prop }) {
             marked={cell.marked}
             isOwner={cell.isOwner}
             onToggleMarker={handleToggleMarker}
-            func={prop}
+            bingoSquareClick={bingoSquareClick}
           />
         ))}
       </div>
