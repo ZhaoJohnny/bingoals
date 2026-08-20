@@ -917,12 +917,12 @@ app.post(
           .json({ success: false, message:  "Player was not on this board" });
       }
 
-      const remainingPlayersReq = await client.query(
+      const remainingPlayers = await client.query(
         "SELECT * FROM players WHERE board_id = $1",
         [boardID],
       );
 
-      if (remainingPlayersReq.rows.length === 0) {
+      if (remainingPlayers.rows.length === 0) {
         await client.query("DELETE FROM boards WHERE id = $1", [boardID]);
         await client.query("COMMIT");
 
