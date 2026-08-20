@@ -947,7 +947,7 @@ app.post(
           .json({ success: false, message: "Host could not be retrieved" });
       }
 
-      const currentHostID = boardResult.rows[0].host_id;
+      const currentHostID = hostResult.rows[0].host_id;
 
       if (String(currentHostID) === String(playerID)) {
         const newHostID = remainingPlayers.rows[0].user_id;
