@@ -476,13 +476,11 @@ app.put(
     try {
       client = await pool.connect();
       await client.query("BEGIN");
-
-      // 1. Check board exists and current user is host
+      // 0. Check if player has filled all squares.
       const boardResult = await client.query(
-        `SELECT id, host_id, status FROM boards WHERE id = $1`,
+        `SELECT status FROM boards WHERE id = $1`,
         [boardID],
       );
-
       if (boardResult.rows.length === 0) {
         await client.query("ROLLBACK");
         return res.status(404).json({
@@ -490,44 +488,17 @@ app.put(
           message: "Board not found",
         });
       }
-      if (boardResult.rows[0].host_id !== playerID) {
+      if (boardResult.rows[0].status !== 'creation'){
         await client.query("ROLLBACK");
-        return res.status(403).json({
+        return res.status(404).json({
           success: false,
-          message: "You are not the host of this board",
+          message: "Board not in creation mode",
         });
       }
 
-      // 2. Check all players are ready
-      const playersResult = await client.query(
-        `SELECT user_id, ready FROM players WHERE board_id = $1`,
-        [boardID],
-      );
-
-      const players = playersResult.rows;
-
-      if (players.length === 0) {
-        await client.query("ROLLBACK");
-        return res.status(400).json({
-          success: false,
-          message: "No players found on this board",
-        });
-      }
-
-      const someoneNotReady = players.some((p) => p.ready === false);
-
-      if (someoneNotReady) {
-        await client.query("ROLLBACK");
-        return res.status(400).json({
-          success: false,
-          message: "Not all players are ready",
-        });
-      }
-
-      // 3. Check all squares are filled
       let squaresResult = await client.query(
-        `SELECT id, index, goal FROM squares WHERE board_id = $1 ORDER BY index ASC`,
-        [boardID],
+        `SELECT id, index, goal FROM squares WHERE board_id = $1 AND player_id = $2 ORDER BY index ASC`,
+        [boardID, playerID],
       );
 
       let squares = squaresResult.rows;
@@ -549,6 +520,38 @@ app.put(
           });
         }
       }
+      // 1. Change ready status of player
+      await client.query(
+        `UPDATE players SET ready = NOT ready WHERE board_id = $1 AND user_id = $2`,
+        [boardID, playerID],
+      )
+      client.query(`COMMIT`);
+      // 2. Check if all players are ready
+      const playersResult = await client.query(
+        `SELECT user_id, ready FROM players WHERE board_id = $1`,
+        [boardID],
+      );
+       const players = playersResult.rows;
+
+      if (players.length === 0) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({
+          success: false,
+          message: "No players found on this board",
+        });
+      }
+      console.log(playersResult);
+      const someoneNotReady = players.some((p) => p.ready === false);
+
+      if (someoneNotReady) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({
+          success: false,
+          message: "Not all players are ready",
+        });
+      }
+      // 3. Change status to playing
+      
 
       const result = await client.query(
         `UPDATE boards SET status = 'playing' WHERE id = $1`,
@@ -1106,7 +1109,7 @@ app.post("/api/board/:boardID/start", authenticateToken, async (req, res) => {
     await client.query(`UPDATE boards SET status = 'creation' WHERE id = $1`, [
       boardID,
     ]);
-
+    await client.query(`UPDATE players SET ready = false WHERE board_id = $1`, [boardID])
     await client.query("COMMIT");
     io.to(`board-${boardID}`).emit("board-updated", {
       boardID,

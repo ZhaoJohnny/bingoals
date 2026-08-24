@@ -112,8 +112,11 @@ function BoardPage() {
       if (data.success) {
         setStatus(data.status);
       }
-
+      else {
+        console.log(data)
+      }
     } catch (error) {
+      
       console.error("Failed to finish creation phase", error);
     } 
   }
