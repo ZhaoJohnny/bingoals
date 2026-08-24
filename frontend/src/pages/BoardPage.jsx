@@ -18,13 +18,16 @@ function BoardPage() {
 
   const location = useLocation();
   const code = location.state?.code;
+  const [loading, setLoading] = useState(true)
   useEffect(() => {
     console.log("Joining socket board:", boardID);
+    setLoading(true);
 
     socket.emit("join-board", boardID);
 
     socket.on("connect", () => {
       console.log("Socket connected on frontend:", socket.id);
+      setLoading(false);
     });
 
     return () => {
@@ -226,17 +229,25 @@ function BoardPage() {
   useEffect(() => {
     function handleBoardStatusUpdate(data) {
       if (String(data.boardID) === String(boardID)) {
+        setLoading(true);
         loadBoardStatus();
+        setLoading(false);
         console.log("Board status updated, reloading status:", boardID);
       }
     }
+    setLoading(true);
     loadBoardStatus();
+    setLoading(false);
     socket.on("board-updated", handleBoardStatusUpdate);
     return () => {
       socket.off("board-updated", handleBoardStatusUpdate);
     };
   }, [boardID, status]);
-
+  if (loading){
+    return(
+    <div className="loading"><p>loading...</p></div>
+    );
+  }
   if (status === 'lobby') {
     return (
       <LobbyPhase boardID={boardID} onStart = {onStart} code={code}/>

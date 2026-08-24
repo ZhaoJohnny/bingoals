@@ -43,3 +43,13 @@
   display: block;
   box-sizing: border-box;
 }
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  min-height: 300px;
+
+  font-size: 1.2rem;
+  font-weight: bold;
+}
