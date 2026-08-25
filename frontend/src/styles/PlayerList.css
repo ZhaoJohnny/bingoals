@@ -54,3 +54,22 @@
   color: #c62828;
   font-weight: bold;
 }
+.players-list-creation {
+  background: transparent;
+  padding: 0;
+  border: none;
+  box-shadow: none;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+
+  margin-bottom: 12px;
+}
+
+.players-list-creation .creation-player-name {
+  background: transparent;
+  font-size: 0.95rem;
+  font-weight: 500;
+}

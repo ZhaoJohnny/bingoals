@@ -147,6 +147,7 @@ async function checkAndEndExpiredBoard(boardID) {
     status: board.status,
   };
 }
+const countdownTimers = new Map();
 app.get("/", (req, res) => {
   res.send("Server is working");
 });
@@ -472,34 +473,87 @@ app.put(
     try {
       client = await pool.connect();
       await client.query("BEGIN");
-
-      // 1. Check board exists and current user is host
-      const boardResult = await client.query(
-        `SELECT id, host_id, status FROM boards WHERE id = $1`,
-        [boardID],
-      );
-
-      if (boardResult.rows.length === 0) {
-        await client.query("ROLLBACK");
-        return res.status(404).json({
-          success: false,
-          message: "Board not found",
-        });
-      }
-      if (boardResult.rows[0].host_id !== playerID) {
+      // -1. Get player ready status
+      const playerReadyResult = await client.query(
+        `SELECT ready FROM players WHERE board_id = $1 AND user_id = $2`,
+        [boardID, playerID]
+      )
+      if (playerReadyResult.rows.length === 0) {
         await client.query("ROLLBACK");
         return res.status(403).json({
           success: false,
-          message: "You are not the host of this board",
+          message: "You are not a player on this board",
         });
       }
+      if (playerReadyResult.rows[0].ready === false){
+        // 0. Check if player has filled all squares.
+        const boardResult = await client.query(
+          `SELECT status FROM boards WHERE id = $1`,
+          [boardID],
+        );
+        if (boardResult.rows.length === 0) {
+          await client.query("ROLLBACK");
+          return res.status(404).json({
+            success: false,
+            message: "Board not found",
+          });
+        }
+        if (boardResult.rows[0].status !== 'creation'){
+          await client.query("ROLLBACK");
+          return res.status(404).json({
+            success: false,
+            message: "Board not in creation mode",
+          });
+        }
 
-      // 2. Check all players are ready
+        let squaresResult = await client.query(
+          `SELECT id, index, goal FROM squares WHERE board_id = $1 AND player_id = $2 ORDER BY index ASC`,
+          [boardID, playerID],
+        );
+
+        let squares = squaresResult.rows;
+
+        if (squares.length == 0) {
+          await client.query("ROLLBACK");
+          return res.status(404).json({
+            success: false,
+            message: "Squares do not exist",
+          });
+        }
+
+        for (let i = 0; i < squares.length; i++) {
+          if (!squares[i].goal || squares[i].goal.trim() === "") {
+            await client.query("ROLLBACK");
+            return res.status(400).json({
+              success: false,
+              message: `Square at index ${squares[i].index} is missing text`,
+            });
+          }
+        }
+      }
+      if (playerReadyResult.rows[0].ready === true){
+  
+        const timeoutID = countdownTimers.get(String(boardID));
+        if (timeoutID) {
+          clearTimeout(timeoutID);
+          countdownTimers.delete(String(boardID));
+
+          io.to(`board-${boardID}`).emit("countdown-cancelled", {
+            boardID,
+      });
+      }}
+      // 1. Change ready status of player
+      await client.query(
+        `UPDATE players SET ready = NOT ready WHERE board_id = $1 AND user_id = $2`,
+        [boardID, playerID],
+      )
+      io.to(`board-${boardID}`).emit('players-updated', { boardID });
+
+      // 2. Check if all players are ready
       const playersResult = await client.query(
         `SELECT user_id, ready FROM players WHERE board_id = $1`,
         [boardID],
       );
-
       const players = playersResult.rows;
 
       if (players.length === 0) {
@@ -513,43 +567,54 @@ app.put(
       const someoneNotReady = players.some((p) => p.ready === false);
 
       if (someoneNotReady) {
-        await client.query("ROLLBACK");
-        return res.status(400).json({
-          success: false,
+        await client.query(`COMMIT`);
+        return res.json({
+          success: true,
           message: "Not all players are ready",
+          end: false,
         });
       }
+      
 
-      // 3. Check all squares are filled
-      let squaresResult = await client.query(
-        `SELECT id, index, goal FROM squares WHERE board_id = $1 ORDER BY index ASC`,
-        [boardID],
-      );
+      
+      if (countdownTimers.has(String(boardID))) {
+        await client.query("COMMIT");
+        return res.json({
+          success: true,
+          message: "Countdown already started.",
+          status: "creation",
 
-      let squares = squaresResult.rows;
-
-      if (squares.length == 0) {
-        await client.query("ROLLBACK");
-        return res.status(404).json({
-          success: false,
-          message: "Squares do not exist",
         });
       }
+      const countdownSeconds = 5;
+      io.to(`board-${boardID}`).emit("countdown-started", {
+        boardID,
+        seconds: countdownSeconds,
+      });
+      const timeoutID = setTimeout(async () => {
+        try {
+          const result = await pool.query(
+            `
+            UPDATE boards
+            SET status = 'playing'
+            WHERE id = $1 AND status = 'creation'
+            RETURNING status
+            `,
+            [boardID]
+          );
 
-      for (let i = 0; i < squares.length; i++) {
-        if (!squares[i].goal || squares[i].goal.trim() === "") {
-          await client.query("ROLLBACK");
-          return res.status(400).json({
-            success: false,
-            message: `Square at index ${squares[i].index} is missing text`,
-          });
+          if (result.rows.length > 0) {
+            io.to(`board-${boardID}`).emit("board-updated", {
+              boardID,
+              status: "playing",
+            });
+          }
+        } catch (error) {
+          console.error("Countdown finish error:", error);
         }
-      }
+      }, countdownSeconds * 1000);
 
-      const result = await client.query(
-        `UPDATE boards SET status = 'playing' WHERE id = $1`,
-        [boardID],
-      );
+      countdownTimers.set(String(boardID), timeoutID);
 
       await client.query("COMMIT");
       io.to(`board-${boardID}`).emit("board-updated", {
@@ -559,7 +624,7 @@ app.put(
       return res.json({
         success: true,
         message: "Board changed to playing",
-        status: "playing",
+        status: 'creation',
       });
     } catch (error) {
       console.error("Error fetching board:", error);
@@ -568,7 +633,7 @@ app.put(
         message: "Failed to fetch board",
       });
     } finally {
-      if (client) client.release();
+      client.release();
     }
   },
 );
@@ -1175,7 +1240,7 @@ app.post("/api/board/:boardID/start", authenticateToken, async (req, res) => {
     await client.query(`UPDATE boards SET status = 'creation' WHERE id = $1`, [
       boardID,
     ]);
-
+    await client.query(`UPDATE players SET ready = false WHERE board_id = $1`, [boardID])
     await client.query("COMMIT");
     io.to(`board-${boardID}`).emit("board-updated", {
       boardID,

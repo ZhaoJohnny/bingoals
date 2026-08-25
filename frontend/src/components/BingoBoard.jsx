@@ -36,12 +36,12 @@ function BingoBoard({
       console.error("Failed to load board", err);
     }
   }
+  if (!cells) {
+    return <div className="bingo-board">Loading board...</div>;
+  }
 
   async function loadEverything() {
-    setLoading(true);
     await loadBoard();
-
-    setLoading(false);
   }
   useEffect(() => {
     function handleBoardUpdated(data) {
@@ -51,6 +51,7 @@ function BingoBoard({
       }
     }
     socket.on("board-updated", handleBoardUpdated);
+
     loadEverything();
     return () => {
       socket.off("board-updated", handleBoardUpdated);

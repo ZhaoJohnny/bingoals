@@ -9,6 +9,7 @@ import { getPlayerIDFromToken } from "../utils/decodeToken";
 
 import socket from "../socket.js";
 import "../styles/BoardPage.css";
+import PlayerList from "../components/PlayerList.jsx";
 import CreationPopup from "../components/CreationPopup.jsx";
 import PlayingPopup from "../components/PlayingPopup.jsx";
 
@@ -99,8 +100,16 @@ function BoardPage() {
       console.error("Failed to get board status", err);
       navigate("/");
     }
-  }
+  } 
+  async function loadBoardStatusWithoutJump() {
+  const scrollY = window.scrollY;
 
+  await loadBoardStatus();
+
+  requestAnimationFrame(() => {
+    window.scrollTo(0, scrollY);
+  });
+}
   async function onFinish() {
     try {
       const finishCreationResponse = await fetch(
@@ -113,11 +122,12 @@ function BoardPage() {
         },
       );
       const data = await finishCreationResponse.json();
-
-      if (data.success) {
+      
+      if (data.success && data.status && data.status != status) {
         setStatus(data.status);
       }
     } catch (error) {
+      
       console.error("Failed to finish creation phase", error);
     }
   }
@@ -149,7 +159,7 @@ function BoardPage() {
         },
       );
       const data = await response.json();
-      console.log("BINGO response:", data);
+
       if (data.success) {
         alert("BINGO!");
         setStatus(data.status);
@@ -184,7 +194,7 @@ function BoardPage() {
         throw new Error("Failed to save bingo square");
       }
       setText("");
-      console.log("Saved:", text);
+
     } catch (error) {
       console.error(error);
     }
@@ -195,7 +205,7 @@ function BoardPage() {
     setShowPopup(true);
     setSelectedSquareID(squareID);
     setText(content);
-    console.log("Bingo square clicked:", squareID);
+
   }
   const [showPlayPopup, setShowPlayPopup] = useState(false);
   const [selectedSquareMarked, setSelectedSquareMarked] = useState(false);
@@ -204,7 +214,7 @@ function BoardPage() {
     setSelectedSquareID(squareID);
     setText(content);
     setSelectedSquareMarked(marked);
-    console.log("Bingo square clicked:", squareID);
+
   }
   async function markSquareClick(index) {
     try {
@@ -230,21 +240,52 @@ function BoardPage() {
   useEffect(() => {
     function handleBoardStatusUpdate(data) {
       if (String(data.boardID) === String(boardID)) {
-        setLoading(true);
-        loadBoardStatus();
-        setLoading(false);
+        loadBoardStatusWithoutJump();
         console.log("Board status updated, reloading status:", boardID);
       }
     }
-    setLoading(true);
-    loadBoardStatus();
-    setLoading(false);
+    loadBoardStatusWithoutJump();
     socket.on("board-updated", handleBoardStatusUpdate);
     return () => {
       socket.off("board-updated", handleBoardStatusUpdate);
     };
   }, [boardID, status]);
-  if (loading) {
+  const [countdown, setCountdown] = useState(null);
+  const [showCountdown, setShowCountdown] = useState(false);
+  useEffect(() => {
+  function handleCountdownStarted(data) {
+    if (String(data.boardID) === String(boardID)) {
+      setCountdown(data.seconds);
+    }
+  }
+
+  function handleCountdownCancelled(data) {
+    if (String(data.boardID) === String(boardID)) {
+      setCountdown(null);
+    }
+  }
+
+  socket.on("countdown-started", handleCountdownStarted);
+  socket.on("countdown-cancelled", handleCountdownCancelled);
+
+  return () => {
+    socket.off("countdown-started", handleCountdownStarted);
+    socket.off("countdown-cancelled", handleCountdownCancelled);
+  };
+}, [boardID]);
+useEffect(() => {
+  if (countdown === null) return;
+
+  if (countdown <= 0) return;
+
+  const timer = setTimeout(() => {
+    setCountdown((prev) => prev - 1);
+  }, 1000);
+
+  return () => clearTimeout(timer);
+}, [countdown]);
+  
+  if (status === 'lobby') {
     return (
       <div className="loading">
         <p>loading...</p>
@@ -256,14 +297,22 @@ function BoardPage() {
   }
   if (status === "creation") {
     return (
-      <div>
-        <BingoBoard
-          title="BOARD NAME"
-          boardID={boardID}
-          status={status}
-          bingoSquareClick={handleBingoSquareClick}
-        />
-        <FinishButton onFinish={onFinish} />
+      <div className = "creation-page">
+        <BingoBoard title="BOARD NAME" boardID={boardID} status={status} bingoSquareClick = {handleBingoSquareClick}/>
+        <PlayerList boardID = {boardID} showKick = {false} variant ="creation"/>
+          <div className="finish-row">
+            <FinishButton onFinish={onFinish} />
+
+            <div className={countdown !== null && countdown > 0 ? "countdown visible" : "countdown"}>
+              {countdown !== null && countdown > 0 && (
+                <>
+                  <span>Game starting in...</span>
+                  <strong>{countdown}</strong>
+                </>
+              )}
+            </div>
+          </div>
+
         {showPopup && (
           <CreationPopup
             setText={setText}
