@@ -10,6 +10,8 @@ import { getPlayerIDFromToken } from "../utils/decodeToken";
 import socket from "../socket.js";
 import "../styles/BoardPage.css";
 import PlayerList from "../components/PlayerList.jsx";
+import CreationPopup from "../components/CreationPopup.jsx";
+import PlayingPopup from "../components/PlayingPopup.jsx";
 
 function BoardPage() {
   const { boardID } = useParams();
@@ -19,13 +21,16 @@ function BoardPage() {
 
   const location = useLocation();
   const code = location.state?.code;
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     console.log("Joining socket board:", boardID);
+    setLoading(true);
 
     socket.emit("join-board", boardID);
 
     socket.on("connect", () => {
       console.log("Socket connected on frontend:", socket.id);
+      setLoading(false);
     });
 
     return () => {
@@ -121,11 +126,10 @@ function BoardPage() {
       if (data.success && data.status && data.status != status) {
         setStatus(data.status);
       }
-
     } catch (error) {
       
       console.error("Failed to finish creation phase", error);
-    } 
+    }
   }
 
   async function handleBingo() {
@@ -166,34 +170,34 @@ function BoardPage() {
       console.error("Error submitting BINGO:", error);
     }
   }
-  const [text, setText] = useState('');
+  const [text, setText] = useState("");
   async function saveSquareContent(index, content) {
-    if (status !== 'creation') return;
-
-      try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/board/${boardID}/square/${index}/bingo-square`, {
-          method: 'POST',
+    if (status !== "creation") return;
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/board/${boardID}/square/${index}/bingo-square`,
+        {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
-            authorization: `Bearer ${localStorage.getItem('token')}`,
+            "Content-Type": "application/json",
+            authorization: `Bearer ${localStorage.getItem("token")}`,
           },
           body: JSON.stringify({
             boardID,
             index,
             content: text,
-
           }),
-        });
+        },
+      );
 
-        if (!response.ok) {
-          throw new Error('Failed to save bingo square');
-        }
-        setText('');
-
-      } catch (error) {
-        console.error(error);
+      if (!response.ok) {
+        throw new Error("Failed to save bingo square");
       }
-    
+      setText("");
+
+    } catch (error) {
+      console.error(error);
+    }
   }
   const [showPopup, setShowPopup] = useState(false);
   const [selectedSquareID, setSelectedSquareID] = useState(null);
@@ -205,7 +209,7 @@ function BoardPage() {
   }
   const [showPlayPopup, setShowPlayPopup] = useState(false);
   const [selectedSquareMarked, setSelectedSquareMarked] = useState(false);
-  async function handlePlayBingoSquareClick(squareID, content,marked) {
+  async function handlePlayBingoSquareClick(squareID, content, marked) {
     setShowPlayPopup(true);
     setSelectedSquareID(squareID);
     setText(content);
@@ -215,23 +219,23 @@ function BoardPage() {
   async function markSquareClick(index) {
     try {
       const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/board/${boardID}/square/${index}/toggle-marker`,
-          {
-            method: 'POST',
-            headers: {
-              authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-          }
-        );
+        `${import.meta.env.VITE_API_URL}/api/board/${boardID}/square/${index}/toggle-marker`,
+        {
+          method: "POST",
+          headers: {
+            authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        },
+      );
 
-        const data = await response.json();
-        if (data.success) {
-          return data;
-        }
+      const data = await response.json();
+      if (data.success) {
+        return data;
+      }
     } catch (error) {
-      console.error('Failed to toggle marker:', error);
+      console.error("Failed to toggle marker:", error);
     }
-  };
+  }
 
   useEffect(() => {
     function handleBoardStatusUpdate(data) {
@@ -283,8 +287,13 @@ useEffect(() => {
   
   if (status === 'lobby') {
     return (
-      <LobbyPhase boardID={boardID} onStart = {onStart} code={code}/>
+      <div className="loading">
+        <p>loading...</p>
+      </div>
     );
+  }
+  if (status === "lobby") {
+    return <LobbyPhase boardID={boardID} onStart={onStart} code={code} />;
   }
   if (status === "creation") {
     return (
@@ -323,29 +332,46 @@ useEffect(() => {
           </div>
         </div>
       )}
+      <div>
+        <BingoBoard
+          title="BOARD NAME"
+          boardID={boardID}
+          status={status}
+          bingoSquareClick={handleBingoSquareClick}
+        />
+        <FinishButton onFinish={onFinish} />
+        {showPopup && (
+          <CreationPopup
+            setText={setText}
+            setShowPopup={setShowPopup}
+            saveSquareContent={saveSquareContent}
+            text={text}
+            selectedSquareID={selectedSquareID}
+          />
+        )}
       </div>
     );
   }
   if (status === "playing") {
     return (
       <div>
-        <BingoBoard title="BOARD NAME" boardID={boardID} status={status} bingoSquareClick={handlePlayBingoSquareClick} markSquareClick={markSquareClick} />
+        <BingoBoard
+          title="BOARD NAME"
+          boardID={boardID}
+          status={status}
+          bingoSquareClick={handlePlayBingoSquareClick}
+          markSquareClick={markSquareClick}
+        />
         <BingoButton onClick={handleBingo} />
         {showPlayPopup && (
-        <div className="popup-overlay">
-          <div className="popup-box">
-            <p>{text}</p>
-
-            <button onClick={() => setShowPlayPopup(false)}>
-              Close
-            </button>
-            <button onClick={() => {markSquareClick(selectedSquareID); setShowPlayPopup(false);}}>
-              {selectedSquareMarked ? 'Unmark' : 'Mark'}
-            </button>
-
-          </div>
-        </div>
-      )}
+          <PlayingPopup
+            setShowPlayPopup={setShowPlayPopup}
+            markSquareClick={markSquareClick}
+            selectedSquareMarked={selectedSquareMarked}
+            text={text}
+            selectedSquareID={selectedSquareID}
+          />
+        )}
       </div>
     );
   } else if (status === "ended") {

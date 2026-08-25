@@ -43,41 +43,6 @@
   display: block;
   box-sizing: border-box;
 }
-.creation-page {
-  width: fit-content;
-  margin: 0 auto;
-}
-.finish-row {
-  position: relative;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  margin-top: 16px;
-}
-
-.countdown {
-  position: absolute;
-  left: calc(50% + 90px);
-
-  min-width: 180px;
-  height: 40px;
-
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  opacity: 0;
-  pointer-events: none;
-}
-
-.countdown.visible {
-  opacity: 1;
-}
-
-.countdown strong {
-  font-size: 1.5rem;
 .loading {
   display: flex;
   justify-content: center;
