@@ -1,0 +1,43 @@
+.players-list {
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  padding: 32px 48px;
+  width: 200px;
+  max-width: 40vw;
+  min-height: 320px;
+}
+
+.players-list h3 {
+  margin: 0 0 16px 0;
+  font-size: 20px;
+  text-transform: uppercase;
+  color: #555;
+  text-align: center;
+}
+
+.players-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.players-list li {
+  padding: 8px 0;
+  font-size: 18px;
+  text-align: center;
+  border-bottom: 1px solid #eee;
+}
+
+.players-list li:last-child {
+  border-bottom: none;
+}
+
+.players-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 18px;
+  border-bottom: 1px solid #eee;
+}
