@@ -344,7 +344,6 @@ app.post(
         });
       }
 
-      
       client.query("COMMIT");
       io.to(`board-${boardID}`).emit("board-updated", { boardID });
       res.json({
@@ -920,7 +919,7 @@ app.post(
         await client.query("ROLLBACK");
         return res
           .status(404)
-          .json({ success: false, message:  "Player was not on this board" });
+          .json({ success: false, message: "Player was not on this board" });
       }
 
       const remainingPlayers = await client.query(
@@ -1045,7 +1044,7 @@ app.post("/api/board/:boardID/start", authenticateToken, async (req, res) => {
 
     // 1. Check board exists and current user is host
     const boardResult = await client.query(
-      `SELECT id, host_id, status FROM boards WHERE id = $1`,
+      `SELECT host_id, status FROM boards WHERE id = $1`,
       [boardID],
     );
 
@@ -1067,7 +1066,11 @@ app.post("/api/board/:boardID/start", authenticateToken, async (req, res) => {
     const board = boardResult.rows[0];
 
     // Optional: prevent starting twice
-    if (board.status === "playing" || board.status === "ended") {
+    if (
+      board.status === "playing" ||
+      board.status === "ended" ||
+      board.status === "creation"
+    ) {
       await client.query("ROLLBACK");
       return res.status(400).json({
         success: false,
@@ -1095,7 +1098,7 @@ app.post("/api/board/:boardID/start", authenticateToken, async (req, res) => {
 
     if (someoneNotReady) {
       await client.query("ROLLBACK");
-      return res.status(400).json({
+      return res.status(403).json({
         success: false,
         message: "Not all players are ready",
       });
@@ -1147,15 +1150,27 @@ app.post("/api/board/:boardID/start", authenticateToken, async (req, res) => {
     const shuffledSquares = shuffleArray(squares);
     const shuffledPlayers = shuffleArray(players);
 
+    const updateValues = [];
+    const updateParams = [];
+
     for (let i = 0; i < shuffledSquares.length; i++) {
       const square = shuffledSquares[i];
       const player = shuffledPlayers[i % shuffledPlayers.length];
 
-      await client.query(`UPDATE squares SET player_id = $1 WHERE id = $2`, [
-        player.user_id,
-        square.id,
-      ]);
+      updateValues.push(
+        `($${updateParams.length + 1}, $${updateParams.length + 2})`,
+      );
+
+      updateParams.push(square.id, player.user_id);
     }
+
+    await client.query(
+      `UPDATE squares AS s
+        SET player_id = v.player_id
+        FROM (VALUES ${updateValues.join(", ")}) AS v(square_id, player_id)
+        WHERE s.id = v.square_id`,
+      updateParams,
+    );
 
     // 7. Change board status
     await client.query(`UPDATE boards SET status = 'creation' WHERE id = $1`, [
