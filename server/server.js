@@ -298,7 +298,6 @@ app.post(
       }
       client = await pool.connect();
       client.query("BEGIN");
-      cleint.query("BEGIN");
       const squarePlayerResult = await client.query(
         `SELECT player_id FROM squares WHERE index = $1 AND board_id = $2`,
         [index, boardID],
