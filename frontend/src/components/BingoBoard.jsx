@@ -15,11 +15,12 @@ function BingoBoard({
   );
 
   const [loading, setLoading] = useState(true);
-  
-  
-    async function loadBoard() {
-      try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/board/${boardID}`, {
+
+  async function loadBoard() {
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/board/${boardID}`,
+        {
           headers: {
             authorization: `Bearer ${localStorage.getItem("token")}`,
           },
@@ -34,26 +35,23 @@ function BingoBoard({
     } catch (err) {
       console.error("Failed to load board", err);
     }
-    if (!cells){
-      return <div className="bingo-board">Loading board...</div>;
-    }
-    
-  
-    async function loadEverything() {
-      
-      await loadBoard();
-      
-      
-    }
-  useEffect(() => {  
+  }
+  if (!cells) {
+    return <div className="bingo-board">Loading board...</div>;
+  }
+
+  async function loadEverything() {
+    await loadBoard();
+  }
+  useEffect(() => {
     function handleBoardUpdated(data) {
       if (String(data.boardID) === String(boardID)) {
         loadEverything();
         console.log("Board updated, reloading board:", boardID);
       }
-    };
-    socket.on('board-updated', handleBoardUpdated);
-    
+    }
+    socket.on("board-updated", handleBoardUpdated);
+
     loadEverything();
     return () => {
       socket.off("board-updated", handleBoardUpdated);

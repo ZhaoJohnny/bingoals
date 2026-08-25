@@ -298,48 +298,21 @@ useEffect(() => {
   if (status === "creation") {
     return (
       <div className = "creation-page">
-      <BingoBoard title="BOARD NAME" boardID={boardID} status={status} bingoSquareClick = {handleBingoSquareClick}/>
-      <PlayerList boardID = {boardID} showKick = {false} variant ="creation"/>
-      <div className="finish-row">
-        <FinishButton onFinish={onFinish} />
+        <BingoBoard title="BOARD NAME" boardID={boardID} status={status} bingoSquareClick = {handleBingoSquareClick}/>
+        <PlayerList boardID = {boardID} showKick = {false} variant ="creation"/>
+          <div className="finish-row">
+            <FinishButton onFinish={onFinish} />
 
-        <div className={countdown !== null && countdown > 0 ? "countdown visible" : "countdown"}>
-          {countdown !== null && countdown > 0 && (
-            <>
-              <span>Game starting in...</span>
-              <strong>{countdown}</strong>
-            </>
-          )}
-      </div>
-</div>
-  
-
-      {showPopup && (
-        <div className="popup-overlay">
-          <div className="popup-box">
-            <textarea
-              className="popup-textarea"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-            />
-
-            <button onClick={() => setShowPopup(false)}>
-              Close
-            </button>
-            <button onClick={() => {saveSquareContent(selectedSquareID, text); setShowPopup(false);}}>
-              Save
-            </button>
+            <div className={countdown !== null && countdown > 0 ? "countdown visible" : "countdown"}>
+              {countdown !== null && countdown > 0 && (
+                <>
+                  <span>Game starting in...</span>
+                  <strong>{countdown}</strong>
+                </>
+              )}
+            </div>
           </div>
-        </div>
-      )}
-      <div>
-        <BingoBoard
-          title="BOARD NAME"
-          boardID={boardID}
-          status={status}
-          bingoSquareClick={handleBingoSquareClick}
-        />
-        <FinishButton onFinish={onFinish} />
+
         {showPopup && (
           <CreationPopup
             setText={setText}
