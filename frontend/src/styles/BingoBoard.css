@@ -17,3 +17,28 @@
   display: grid;
   grid-template-columns: repeat(5, 1fr);
 }
+
+
+.finish-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+
+  margin-top: 16px;
+}
+
+.countdown {
+  width: 180px;
+  min-height: 40px;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  font-size: 0.95rem;
+}
+
+.countdown strong {
+  font-size: 1.5rem;
+}

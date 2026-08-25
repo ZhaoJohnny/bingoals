@@ -9,7 +9,7 @@ function BingoBoard({ title, boardID, status, bingoSquareClick, markSquareClick}
   );
   
   const [loading, setLoading] = useState(true);
-
+  
   
     async function loadBoard() {
       try {
@@ -45,6 +45,7 @@ function BingoBoard({ title, boardID, status, bingoSquareClick, markSquareClick}
       }
     };
     socket.on('board-updated', handleBoardUpdated);
+    
     loadEverything();
     return () => {
       socket.off('board-updated', handleBoardUpdated);

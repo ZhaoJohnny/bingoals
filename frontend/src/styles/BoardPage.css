@@ -43,3 +43,36 @@
   display: block;
   box-sizing: border-box;
 }
+
+.finish-row {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin-top: 16px;
+}
+
+.countdown {
+  position: absolute;
+  left: calc(50% + 90px);
+
+  min-width: 180px;
+  height: 40px;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  opacity: 0;
+  pointer-events: none;
+}
+
+.countdown.visible {
+  opacity: 1;
+}
+
+.countdown strong {
+  font-size: 1.5rem;
+}

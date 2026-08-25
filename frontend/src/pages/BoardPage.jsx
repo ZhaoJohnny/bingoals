@@ -94,8 +94,16 @@ function BoardPage() {
       console.error("Failed to get board status", err);
       navigate("/");
     }
-  }
+  } 
+  async function loadBoardStatusWithoutJump() {
+  const scrollY = window.scrollY;
 
+  await loadBoardStatus();
+
+  requestAnimationFrame(() => {
+    window.scrollTo(0, scrollY);
+  });
+}
   async function onFinish() {
     try {
       const finishCreationResponse = await fetch(
@@ -229,17 +237,51 @@ function BoardPage() {
   useEffect(() => {
     function handleBoardStatusUpdate(data) {
       if (String(data.boardID) === String(boardID)) {
-        loadBoardStatus();
+        loadBoardStatusWithoutJump();
         console.log("Board status updated, reloading status:", boardID);
       }
     }
-    loadBoardStatus();
+    loadBoardStatusWithoutJump();
     socket.on("board-updated", handleBoardStatusUpdate);
     return () => {
       socket.off("board-updated", handleBoardStatusUpdate);
     };
   }, [boardID, status]);
+  const [countdown, setCountdown] = useState(null);
+  const [showCountdown, setShowCountdown] = useState(false);
+  useEffect(() => {
+  function handleCountdownStarted(data) {
+    if (String(data.boardID) === String(boardID)) {
+      setCountdown(data.seconds);
+    }
+  }
 
+  function handleCountdownCancelled(data) {
+    if (String(data.boardID) === String(boardID)) {
+      setCountdown(null);
+    }
+  }
+
+  socket.on("countdown-started", handleCountdownStarted);
+  socket.on("countdown-cancelled", handleCountdownCancelled);
+
+  return () => {
+    socket.off("countdown-started", handleCountdownStarted);
+    socket.off("countdown-cancelled", handleCountdownCancelled);
+  };
+}, [boardID]);
+useEffect(() => {
+  if (countdown === null) return;
+
+  if (countdown <= 0) return;
+
+  const timer = setTimeout(() => {
+    setCountdown((prev) => prev - 1);
+  }, 1000);
+
+  return () => clearTimeout(timer);
+}, [countdown]);
+  
   if (status === 'lobby') {
     return (
       <LobbyPhase boardID={boardID} onStart = {onStart} code={code}/>
@@ -249,7 +291,20 @@ function BoardPage() {
     return (
       <div>
       <BingoBoard title="BOARD NAME" boardID={boardID} status={status} bingoSquareClick = {handleBingoSquareClick}/>
-      <FinishButton onFinish={onFinish}/>
+      <div className="finish-row">
+  <FinishButton onFinish={onFinish} />
+
+  <div className={countdown !== null && countdown > 0 ? "countdown visible" : "countdown"}>
+    {countdown !== null && countdown > 0 && (
+      <>
+        <span>Game starting in...</span>
+        <strong>{countdown}</strong>
+      </>
+    )}
+  </div>
+</div>
+  
+
       {showPopup && (
         <div className="popup-overlay">
           <div className="popup-box">

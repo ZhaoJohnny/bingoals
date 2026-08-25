@@ -151,6 +151,7 @@ async function checkAndEndExpiredBoard(boardID) {
     status: board.status,
   };
 }
+const countdownTimers = new Map();
 app.get("/", (req, res) => {
   res.send("Server is working");
 });
@@ -481,6 +482,13 @@ app.put(
         `SELECT ready FROM players WHERE board_id = $1 AND user_id = $2`,
         [boardID, playerID]
       )
+      if (playerReadyResult.rows.length === 0) {
+        await client.query("ROLLBACK");
+        return res.status(403).json({
+          success: false,
+          message: "You are not a player on this board",
+        });
+      }
       if (playerReadyResult.rows[0].ready === false){
         // 0. Check if player has filled all squares.
         const boardResult = await client.query(
@@ -527,18 +535,30 @@ app.put(
           }
         }
       }
+      if (playerReadyResult.rows[0].ready === true){
+  
+        const timeoutID = countdownTimers.get(String(boardID));
+        if (timeoutID) {
+          clearTimeout(timeoutID);
+          countdownTimers.delete(String(boardID));
+
+          io.to(`board-${boardID}`).emit("countdown-cancelled", {
+            boardID,
+      });
+      }}
       // 1. Change ready status of player
       await client.query(
         `UPDATE players SET ready = NOT ready WHERE board_id = $1 AND user_id = $2`,
         [boardID, playerID],
       )
-      client.query(`COMMIT`);
+      io.to(`board-${boardID}`).emit("players-updated", { boardID });
+      
       // 2. Check if all players are ready
       const playersResult = await client.query(
         `SELECT user_id, ready FROM players WHERE board_id = $1`,
         [boardID],
       );
-       const players = playersResult.rows;
+      const players = playersResult.rows;
 
       if (players.length === 0) {
         await client.query("ROLLBACK");
@@ -547,33 +567,63 @@ app.put(
           message: "No players found on this board",
         });
       }
-      console.log(playersResult);
+
       const someoneNotReady = players.some((p) => p.ready === false);
 
       if (someoneNotReady) {
-        await client.query("ROLLBACK");
-        return res.status(400).json({
-          success: false,
+        await client.query(`COMMIT`);
+        return res.json({
+          success: true,
           message: "Not all players are ready",
+          end: false,
         });
       }
-      // 3. Change status to playing
       
 
-      const result = await client.query(
-        `UPDATE boards SET status = 'playing' WHERE id = $1`,
-        [boardID],
-      );
+      
+      if (countdownTimers.has(String(boardID))) {
+        await client.query("COMMIT");
+        return res.json({
+          success: true,
+          message: "Countdown already started.",
+          status: "creation",
 
-      await client.query("COMMIT");
-      io.to(`board-${boardID}`).emit("board-updated", {
+        });
+      }
+      const countdownSeconds = 5;
+      io.to(`board-${boardID}`).emit("countdown-started", {
         boardID,
+        seconds: countdownSeconds,
       });
-      
+      const timeoutID = setTimeout(async () => {
+        try {
+          const result = await pool.query(
+            `
+            UPDATE boards
+            SET status = 'playing'
+            WHERE id = $1 AND status = 'creation'
+            RETURNING status
+            `,
+            [boardID]
+          );
+
+          if (result.rows.length > 0) {
+            io.to(`board-${boardID}`).emit("board-updated", {
+              boardID,
+              status: "playing",
+            });
+          }
+        } catch (error) {
+          console.error("Countdown finish error:", error);
+        }
+      }, countdownSeconds * 1000);
+
+      countdownTimers.set(String(boardID), timeoutID);
+
       return res.json({
         success: true,
         message: "Board changed to playing",
-        status: "playing",
+        status: 'creation',
       });
     } catch (error) {
       console.error("Error fetching board:", error);
@@ -582,7 +632,7 @@ app.put(
         message: "Failed to fetch board",
       });
     } finally {
-      if (client) client.release();
+      client.release();
     }
   },
 );
