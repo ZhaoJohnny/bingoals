@@ -1158,7 +1158,7 @@ app.post("/api/board/:boardID/start", authenticateToken, async (req, res) => {
       const player = shuffledPlayers[i % shuffledPlayers.length];
 
       updateValues.push(
-        `($${updateParams.length + 1}, $${updateParams.length + 2})`,
+        `($${updateParams.length + 1}::integer, $${updateParams.length + 2}::integer)`,
       );
 
       updateParams.push(square.id, player.user_id);
