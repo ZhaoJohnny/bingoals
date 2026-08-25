@@ -3,7 +3,7 @@ import '../styles/PlayerList.css';
 import socket from '../socket.js';
 import KickPlayerButton from './KickPlayerButton';
 
-function PlayerList({ boardID }) {
+function PlayerList({ boardID, showKick, variant = "default"}) {
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -21,9 +21,11 @@ function PlayerList({ boardID }) {
 
   useEffect(() => {
     loadPlayers(); // initial fetch
+    
     socket.on('players-updated', (data) => {
       if (String(data.boardID) === String(boardID)) {
         loadPlayers();
+
       }
     });
     return () => {
@@ -31,9 +33,23 @@ function PlayerList({ boardID }) {
     };
   }, [boardID]);
 
-  if (loading) return <div className="players-list">Loading players…</div>;
+  if (loading) return <div className={`players-list players-list-${variant}`}>Loading players…</div>;
+  if (variant === "creation") {
+    return (
+      <div className="players-list players-list-creation">
+        {players.map((player) => (
+          <span key={player.id} className="creation-player">
+            <span className="creation-player-name">{player.name}</span>
 
-  return (
+            <span className={player.ready ? "ready-mark" : "not-ready-mark"}>
+              {player.ready ? "✓" : "✗"}
+            </span>
+          </span>
+        ))}
+      </div>
+    );
+  }
+  return (  
     <div className="players-list">
       <h3>Players</h3>
       <ul>
@@ -43,7 +59,8 @@ function PlayerList({ boardID }) {
             <span className={player.ready ? 'ready-mark' : 'not-ready-mark'}>
               {player.ready ? '✓' : '✗'}
             </span>
-            <KickPlayerButton currentPlayer={player.id} boardID={boardID} />
+            {showKick && (<KickPlayerButton currentPlayer={player.id} boardID={boardID} />)}
+            
           </li>
         ))}
       </ul>

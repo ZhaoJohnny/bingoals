@@ -551,8 +551,8 @@ app.put(
         `UPDATE players SET ready = NOT ready WHERE board_id = $1 AND user_id = $2`,
         [boardID, playerID],
       )
-      io.to(`board-${boardID}`).emit("players-updated", { boardID });
-      
+      io.to(`board-${boardID}`).emit('players-updated', { boardID });
+
       // 2. Check if all players are ready
       const playersResult = await client.query(
         `SELECT user_id, ready FROM players WHERE board_id = $1`,

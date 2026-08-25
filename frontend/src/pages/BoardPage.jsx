@@ -9,6 +9,7 @@ import { getPlayerIDFromToken } from "../utils/decodeToken";
 
 import socket from "../socket.js";
 import "../styles/BoardPage.css";
+import PlayerList from "../components/PlayerList.jsx";
 
 function BoardPage() {
   const { boardID } = useParams();
@@ -120,9 +121,7 @@ function BoardPage() {
       if (data.success && data.status && data.status != status) {
         setStatus(data.status);
       }
-      else {
-        console.log(data)
-      }
+
     } catch (error) {
       
       console.error("Failed to finish creation phase", error);
@@ -156,7 +155,7 @@ function BoardPage() {
         },
       );
       const data = await response.json();
-      console.log("BINGO response:", data);
+
       if (data.success) {
         alert("BINGO!");
         setStatus(data.status);
@@ -190,7 +189,7 @@ function BoardPage() {
           throw new Error('Failed to save bingo square');
         }
         setText('');
-        console.log('Saved:', text);
+
       } catch (error) {
         console.error(error);
       }
@@ -202,7 +201,7 @@ function BoardPage() {
     setShowPopup(true);
     setSelectedSquareID(squareID);
     setText(content);
-    console.log("Bingo square clicked:", squareID);
+
   }
   const [showPlayPopup, setShowPlayPopup] = useState(false);
   const [selectedSquareMarked, setSelectedSquareMarked] = useState(false);
@@ -211,7 +210,7 @@ function BoardPage() {
     setSelectedSquareID(squareID);
     setText(content);
     setSelectedSquareMarked(marked);
-    console.log("Bingo square clicked:", squareID);
+
   }
   async function markSquareClick(index) {
     try {
@@ -291,17 +290,18 @@ useEffect(() => {
     return (
       <div className = "creation-page">
       <BingoBoard title="BOARD NAME" boardID={boardID} status={status} bingoSquareClick = {handleBingoSquareClick}/>
+      <PlayerList boardID = {boardID} showKick = {false} variant ="creation"/>
       <div className="finish-row">
-  <FinishButton onFinish={onFinish} />
+        <FinishButton onFinish={onFinish} />
 
-  <div className={countdown !== null && countdown > 0 ? "countdown visible" : "countdown"}>
-    {countdown !== null && countdown > 0 && (
-      <>
-        <span>Game starting in...</span>
-        <strong>{countdown}</strong>
-      </>
-    )}
-  </div>
+        <div className={countdown !== null && countdown > 0 ? "countdown visible" : "countdown"}>
+          {countdown !== null && countdown > 0 && (
+            <>
+              <span>Game starting in...</span>
+              <strong>{countdown}</strong>
+            </>
+          )}
+      </div>
 </div>
   
 
