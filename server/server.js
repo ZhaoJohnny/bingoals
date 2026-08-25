@@ -808,6 +808,7 @@ app.post(
         ]);
         await client.query("COMMIT");
         io.to(`board-${boardID}`).emit("board-updated", { boardID });
+        io.to(`board-${boardID}`).emit("marker-updated", { boardID });
         return res.json({
           success: true,
           message: "Marker removed",
@@ -819,6 +820,7 @@ app.post(
         );
         await client.query("COMMIT");
         io.to(`board-${boardID}`).emit("board-updated", { boardID });
+        io.to(`board-${boardID}`).emit("marker-updated", { boardID });
         return res.json({
           success: true,
           message: "Marker added",
@@ -895,6 +897,46 @@ app.get("/api/board/:boardID/getReady", authenticateToken, async (req, res) => {
     res
       .status(500)
       .json({ success: false, message: "Failed to get ready status" });
+  }
+});
+
+app.get("/api/board/:boardID/leaderboard", async (req, res) => {
+  const boardID = req.params.boardID;
+  let client;
+  try {
+    client = await pool.connect();
+    await client.query("BEGIN");
+
+    const playerMarkers = await client.query(
+      `SELECT 
+         u.name,
+         COUNT(m.player_id) AS marker_count
+       FROM players p
+       JOIN marker m
+         ON m.player_id = p.user_id
+       JOIN users u
+         ON p.user_id = u.id
+       WHERE p.board_id = $1
+         AND m.board_id = $1
+       GROUP BY u.id, u.name
+       ORDER BY marker_count DESC`,
+      [boardID],
+    );
+
+    res.json({
+      success: true,
+      players: playerMarkers.rows.map((row) => ({
+        name: row.name,
+        marker_count: Number(row.marker_count),
+      })),
+    });
+  } catch (error) {
+    console.error("Failed to fetch leaderboard", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch leadboard",
+    });
+  } finally {
   }
 });
 
