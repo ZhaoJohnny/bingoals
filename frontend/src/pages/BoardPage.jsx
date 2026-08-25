@@ -12,6 +12,7 @@ import "../styles/BoardPage.css";
 import PlayerList from "../components/PlayerList.jsx";
 import CreationPopup from "../components/CreationPopup.jsx";
 import PlayingPopup from "../components/PlayingPopup.jsx";
+import Leaderboard from "../components/Leaderboard.jsx";
 
 function BoardPage() {
   const { boardID } = useParams();
@@ -345,6 +346,7 @@ useEffect(() => {
             selectedSquareID={selectedSquareID}
           />
         )}
+        <Leaderboard boardID={boardID}/>
       </div>
     );
   } else if (status === "ended") {
