@@ -11,6 +11,7 @@ import socket from "../socket.js";
 import "../styles/BoardPage.css";
 import CreationPopup from "../components/CreationPopup.jsx";
 import PlayingPopup from "../components/PlayingPopup.jsx";
+import Leaderboard from "../components/Leaderboard.jsx";
 
 function BoardPage() {
   const { boardID } = useParams();
@@ -296,6 +297,7 @@ function BoardPage() {
             selectedSquareID={selectedSquareID}
           />
         )}
+        <Leaderboard boardID={boardID}/>
       </div>
     );
   } else if (status === "ended") {
