@@ -476,48 +476,55 @@ app.put(
     try {
       client = await pool.connect();
       await client.query("BEGIN");
-      // 0. Check if player has filled all squares.
-      const boardResult = await client.query(
-        `SELECT status FROM boards WHERE id = $1`,
-        [boardID],
-      );
-      if (boardResult.rows.length === 0) {
-        await client.query("ROLLBACK");
-        return res.status(404).json({
-          success: false,
-          message: "Board not found",
-        });
-      }
-      if (boardResult.rows[0].status !== 'creation'){
-        await client.query("ROLLBACK");
-        return res.status(404).json({
-          success: false,
-          message: "Board not in creation mode",
-        });
-      }
-
-      let squaresResult = await client.query(
-        `SELECT id, index, goal FROM squares WHERE board_id = $1 AND player_id = $2 ORDER BY index ASC`,
-        [boardID, playerID],
-      );
-
-      let squares = squaresResult.rows;
-
-      if (squares.length == 0) {
-        await client.query("ROLLBACK");
-        return res.status(404).json({
-          success: false,
-          message: "Squares do not exist",
-        });
-      }
-
-      for (let i = 0; i < squares.length; i++) {
-        if (!squares[i].goal || squares[i].goal.trim() === "") {
+      // -1. Get player ready status
+      const playerReadyResult = await client.query(
+        `SELECT ready FROM players WHERE board_id = $1 AND user_id = $2`,
+        [boardID, playerID]
+      )
+      if (playerReadyResult.rows[0].ready === false){
+        // 0. Check if player has filled all squares.
+        const boardResult = await client.query(
+          `SELECT status FROM boards WHERE id = $1`,
+          [boardID],
+        );
+        if (boardResult.rows.length === 0) {
           await client.query("ROLLBACK");
-          return res.status(400).json({
+          return res.status(404).json({
             success: false,
-            message: `Square at index ${squares[i].index} is missing text`,
+            message: "Board not found",
           });
+        }
+        if (boardResult.rows[0].status !== 'creation'){
+          await client.query("ROLLBACK");
+          return res.status(404).json({
+            success: false,
+            message: "Board not in creation mode",
+          });
+        }
+
+        let squaresResult = await client.query(
+          `SELECT id, index, goal FROM squares WHERE board_id = $1 AND player_id = $2 ORDER BY index ASC`,
+          [boardID, playerID],
+        );
+
+        let squares = squaresResult.rows;
+
+        if (squares.length == 0) {
+          await client.query("ROLLBACK");
+          return res.status(404).json({
+            success: false,
+            message: "Squares do not exist",
+          });
+        }
+
+        for (let i = 0; i < squares.length; i++) {
+          if (!squares[i].goal || squares[i].goal.trim() === "") {
+            await client.query("ROLLBACK");
+            return res.status(400).json({
+              success: false,
+              message: `Square at index ${squares[i].index} is missing text`,
+            });
+          }
         }
       }
       // 1. Change ready status of player
