@@ -28,14 +28,16 @@ function BingoBoard({ title, boardID, status, bingoSquareClick, markSquareClick}
         console.error('Failed to load board', err);
       }
     }
-
+    if (!cells){
+      return <div className="bingo-board">Loading board...</div>;
+    }
     
   
     async function loadEverything() {
-      setLoading(true);
+      
       await loadBoard();
       
-      setLoading(false);
+      
     }
   useEffect(() => {  
     function handleBoardUpdated(data) {

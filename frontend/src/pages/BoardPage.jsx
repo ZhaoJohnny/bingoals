@@ -117,7 +117,7 @@ function BoardPage() {
       );
       const data = await finishCreationResponse.json();
       
-      if (data.success) {
+      if (data.success && data.status && data.status != status) {
         setStatus(data.status);
       }
       else {
@@ -289,7 +289,7 @@ useEffect(() => {
   }
   if (status === "creation") {
     return (
-      <div>
+      <div className = "creation-page">
       <BingoBoard title="BOARD NAME" boardID={boardID} status={status} bingoSquareClick = {handleBingoSquareClick}/>
       <div className="finish-row">
   <FinishButton onFinish={onFinish} />
