@@ -1002,6 +1002,7 @@ app.get("/api/board/:boardID/leaderboard", async (req, res) => {
       message: "Failed to fetch leadboard",
     });
   } finally {
+    if (client) client.release();
   }
 });
 
