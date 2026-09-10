@@ -25,7 +25,7 @@ function BoardPage() {
   useEffect(() => {
     console.log("Joining socket board:", boardID);
     setLoading(true);
-    console.log("loading state set to true");
+  
     socket.emit("join-board", boardID);
 
     socket.on("connect", () => {
@@ -335,7 +335,7 @@ useEffect(() => {
           bingoSquareClick={handlePlayBingoSquareClick}
           markSquareClick={markSquareClick}
         />
-        <BingoButton onClick={handleBingo} />
+
         {showPlayPopup && (
           <PlayingPopup
             setShowPlayPopup={setShowPlayPopup}
