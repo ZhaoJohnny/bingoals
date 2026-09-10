@@ -26,7 +26,7 @@ function BoardPage() {
   useEffect(() => {
     console.log("Joining socket board:", boardID);
     setLoading(true);
-
+    console.log("loading state set to true");
     socket.emit("join-board", boardID);
 
     socket.on("connect", () => {
@@ -286,7 +286,7 @@ useEffect(() => {
   return () => clearTimeout(timer);
 }, [countdown]);
   
-  if (status === 'lobby') {
+  if (loading === true) {
     return (
       <div className="loading">
         <p>loading...</p>

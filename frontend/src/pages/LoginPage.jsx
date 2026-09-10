@@ -21,6 +21,10 @@ function LoginPage() {
               localStorage.setItem("user", JSON.stringify(responseData.user));
               navigate("/start");
             }
+            else {
+              const errorData = await response.json();
+              alert(errorData.message);
+            }
         } catch (error) {
             console.error("Error logging in:", error);
         }
