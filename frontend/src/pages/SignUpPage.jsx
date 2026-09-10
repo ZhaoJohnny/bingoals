@@ -21,9 +21,8 @@ function SignUpPage() {
             });
             if (response.ok) {
               const responseData = await response.json();
-              localStorage.setItem("token", responseData.token);
-              localStorage.setItem("user", JSON.stringify(responseData.user));
-              navigate("/start");
+              alert(responseData.message);
+              navigate("/login");
             }
         } catch (error) {
             console.error("Error signing up:", error);

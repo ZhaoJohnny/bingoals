@@ -7,8 +7,17 @@ import jwt from "jsonwebtoken";
 import http from "http";
 import { Server } from "socket.io";
 import { DateTime } from "luxon";
+import nodemailer from "nodemailer";
+import crypto from "crypto";
 dotenv.config();
 
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
 const app = express();
 const { Pool } = pg;
 const server = http.createServer(app);
@@ -152,9 +161,11 @@ app.get("/", (req, res) => {
   res.send("Server is working");
 });
 
-app.post("/api/register", async (req, res) => {
+app.post("/api/ ", async (req, res) => {
   try {
     const { name, email, password } = req.body;
+    const verificationToken = crypto.randomBytes(32).toString("hex");
+    const tokenExpires = new Date(Date.now() + 1000 * 60 * 60);
 
     if (!name || !email || !password) {
       return res.status(400).json({
@@ -178,11 +189,24 @@ app.post("/api/register", async (req, res) => {
     const passwordHash = await bcrypt.hash(password, 10);
 
     const result = await pool.query(
-      `INSERT INTO users (name, email, password)
-       VALUES ($1, $2, $3)
+      `INSERT INTO users (name, email, password, email_verified, verification_token, verification_token_expires)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING id, name, email, created_at`,
-      [name, email, passwordHash],
+      [name, email, passwordHash, false, verificationToken, tokenExpires],
     );
+    const verifyLink = `${process.env.BACKEND_URL}/api/verify-email/${verificationToken}`;
+
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Verify your BINGOals email",
+      html: `
+        <h2>Welcome to BINGOals!</h2>
+        <p>Click the link below to verify your email:</p>
+        <a href="${verifyLink}">Verify Email</a>
+        <p>This link expires in 1 hour.</p>
+      `,
+    });
     const user = await pool.query(
       "SELECT id, name, email, password FROM users WHERE email = $1",
       [email],
@@ -210,13 +234,60 @@ app.post("/api/register", async (req, res) => {
     });
   }
 });
+app.get("/api/verify-email/:token", async (req, res) => {
+  const { token } = req.params;
+
+  try {
+    const userResult = await pool.query(
+      `
+      SELECT id, verification_token_expires
+      FROM users
+      WHERE verification_token = $1
+      `,
+      [token]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.redirect(
+        `${process.env.FRONTEND_URL}/login?verified=false&reason=invalid`
+      );
+    }
+
+    const user = userResult.rows[0];
+
+    if (new Date(user.verification_token_expires) < new Date()) {
+      return res.redirect(
+        `${process.env.FRONTEND_URL}/login?verified=false&reason=expired`
+      );
+    }
+
+    await pool.query(
+      `
+      UPDATE users
+      SET email_verified = true,
+          verification_token = NULL,
+          verification_token_expires = NULL
+      WHERE id = $1
+      `,
+      [user.id]
+    );
+
+    return res.redirect(`${process.env.FRONTEND_URL}/login?verified=true`);
+  } catch (error) {
+    console.error("Verify email error:", error);
+
+    return res.redirect(
+      `${process.env.FRONTEND_URL}/login?verified=false&reason=server`
+    );
+  }
+});
 
 app.post("/api/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
     const user = await pool.query(
-      "SELECT id, name, email, password FROM users WHERE email = $1",
+      "SELECT id, name, email, password, email_verified FROM users WHERE email = $1",
       [email],
     );
 
@@ -224,6 +295,13 @@ app.post("/api/login", async (req, res) => {
       return res.status(404).json({
         success: false,
         message: "User not found",
+      });
+    }
+    if (!user.rows[0].email_verified) {
+      console.log (user.rows[0].email_verified);
+      return res.status(403).json({
+        success: false,
+        message: "Please verify your email before logging in.",
       });
     }
 
