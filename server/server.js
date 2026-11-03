@@ -11,8 +11,6 @@ import nodemailer from "nodemailer";
 import crypto from "crypto";
 dotenv.config();
 
-export { app, server, io, countdownTimers, authenticateToken, getVancouverEndDate, checkAndEndExpiredBoard };
-
 if (process.env.NODE_ENV !== "test") {
      server.listen(PORT, () => console.log(`Backend API running on http://localhost:${PORT}`));
 }
