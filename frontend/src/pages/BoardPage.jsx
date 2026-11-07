@@ -22,21 +22,27 @@ function BoardPage() {
   const location = useLocation();
   const code = location.state?.code;
   const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    console.log("Joining socket board:", boardID);
-    setLoading(true);
-  
+useEffect(() => {
+  console.log("Joining socket board:", boardID);
+  setLoading(true);
+
+  const handleConnect = () => {
+    console.log("Socket connected:", socket.id);
+
     socket.emit("join-board", boardID);
+    setLoading(false);
+  };
 
-    socket.on("connect", () => {
-      console.log("Socket connected on frontend:", socket.id);
-      setLoading(false);
-    });
+  if (socket.connected) {
+    handleConnect();
+  }
 
-    return () => {
-      socket.off("connect");
-    };
-  }, [boardID]);
+  socket.on("connect", handleConnect);
+
+  return () => {
+    socket.off("connect", handleConnect);
+  };
+}, [boardID]);
 
   useEffect(() => {
     function handlePlayerKicked({ kickedPlayerID }) {
