@@ -23,21 +23,29 @@ function BoardPage() {
   const location = useLocation();
   const code = location.state?.code;
   const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    console.log("Joining socket board:", boardID);
-    setLoading(true);
-    console.log("loading state set to true");
+useEffect(() => {
+  console.log("Joining socket board:", boardID);
+  setLoading(true);
+
+  const handleConnect = () => {
+    console.log("Socket connected:", socket.id);
+
     socket.emit("join-board", boardID);
+    setLoading(false);
+  };
 
-    socket.on("connect", () => {
-      console.log("Socket connected on frontend:", socket.id);
-      setLoading(false);
-    });
+  // Already connected? Run immediately.
+  if (socket.connected) {
+    handleConnect();
+  }
 
-    return () => {
-      socket.off("connect");
-    };
-  }, [boardID]);
+  // Otherwise wait for connection (also handles reconnection).
+  socket.on("connect", handleConnect);
+
+  return () => {
+    socket.off("connect", handleConnect);
+  };
+}, [boardID]);
 
   useEffect(() => {
     function handlePlayerKicked({ kickedPlayerID }) {
